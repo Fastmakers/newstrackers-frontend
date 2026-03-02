@@ -1415,3 +1415,28 @@ html {
     opacity: .5;
   }
 }
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  body.print-report-mode {
+    background: #ffffff !important;
+  }
+
+  body.print-report-mode .no-print {
+    display: none !important;
+  }
+
+  body.print-report-mode #report-export-root {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.print-report-mode #report-export-root * {
+    break-inside: avoid-page;
+  }
+}
