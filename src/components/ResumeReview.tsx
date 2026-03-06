@@ -1,82 +1,48 @@
-import { Edit3, CheckCircle2, AlertTriangle } from 'lucide-react';
+const stripMd = (t: string) => t.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1').replace(/`([^`]+)`/g, '$1').trim();
 
-interface ResumeReviewProps {
-  data: any;
-}
+interface ResumeReviewProps { data: any; }
 
 export function ResumeReview({ data }: ResumeReviewProps) {
   const apiResponse = data?.apiResponse ?? data ?? {};
   const resumeProfile = apiResponse.resume_profile ?? {};
-
   const skills = Array.isArray(resumeProfile.skills) ? resumeProfile.skills : [];
   const experiences = Array.isArray(resumeProfile.experiences) ? resumeProfile.experiences : [];
 
-  const summaryCards = [
-    { label: '지원 직무', value: resumeProfile.job_title || '-' },
-    { label: '지원 산업', value: resumeProfile.industry || '-' },
-    { label: '지원 기업', value: resumeProfile.company || '-' },
-  ];
-
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-            <Edit3 className="w-5 h-5 text-green-600" />
-          </div>
+    <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '28px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+      <p style={{ fontWeight: 700, fontSize: '17px', color: '#191F28', marginBottom: '22px' }}>자소서 분석 요약</p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+        {skills.length > 0 && (
           <div>
-            <h2 className="font-bold text-slate-900 text-xl">자소서 첨삭 요약</h2>
-            <p className="text-sm text-slate-600">API 응답 기반 프로필/최종 리포트</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
-        {summaryCards.map((card, index) => (
-          <div key={index} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-            <div className="text-sm font-medium text-slate-700 mb-2">{card.label}</div>
-            <div className="text-base font-bold text-slate-900 break-words">{card.value}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-        <div className="border border-slate-200 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <CheckCircle2 className="w-4 h-4 text-green-600" />
-            <h3 className="font-medium text-slate-900">핵심 스킬</h3>
-          </div>
-          {skills.length === 0 ? (
-            <p className="text-sm text-slate-600">스킬 데이터가 없습니다.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {skills.map((skill: string, index: number) => (
-                <span key={index} className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-200">
-                  {skill}
+            <p style={{ fontSize: '12px', fontWeight: 600, color: '#8B95A1', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>핵심 스킬</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px' }}>
+              {skills.map((skill: string, i: number) => (
+                <span key={i} style={{ padding: '6px 14px', backgroundColor: '#EFF6FF', color: '#2563EB', fontSize: '13px', fontWeight: 600, borderRadius: '100px' }}>
+                  {stripMd(skill)}
                 </span>
               ))}
             </div>
-          )}
-        </div>
-
-        <div className="border border-slate-200 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="w-4 h-4 text-orange-600" />
-            <h3 className="font-medium text-slate-900">주요 경험</h3>
           </div>
-          {experiences.length === 0 ? (
-            <p className="text-sm text-slate-600">경험 데이터가 없습니다.</p>
-          ) : (
-            <ul className="space-y-1.5 text-sm text-slate-700">
-              {experiences.map((experience: string, index: number) => (
-                <li key={index} className="flex items-start gap-2">
-                  <span className="text-slate-400 mt-0.5">•</span>
-                  <span>{experience}</span>
-                </li>
+        )}
+
+        {experiences.length > 0 && (
+          <div>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: '#8B95A1', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>주요 경험</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              {experiences.map((exp: string, i: number) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', backgroundColor: '#F8FAFC', borderRadius: '10px', padding: '12px 14px' }}>
+                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#94A3B8', marginTop: '8px', flexShrink: 0, display: 'block' }} />
+                  <span style={{ fontSize: '14px', color: '#374151', lineHeight: 1.6 }}>{stripMd(exp)}</span>
+                </div>
               ))}
-            </ul>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
+
+        {skills.length === 0 && experiences.length === 0 && (
+          <p style={{ fontSize: '15px', color: '#8B95A1' }}>분석된 데이터가 없습니다.</p>
+        )}
       </div>
     </div>
   );

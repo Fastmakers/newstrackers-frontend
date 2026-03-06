@@ -1,158 +1,185 @@
-import { useEffect, useState } from 'react';
-import { Upload, FileText, User, Briefcase, Building2, Sparkles, Loader2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Upload, FileText, Loader2, CheckCircle2 } from 'lucide-react';
 
 interface UploadSectionProps {
   onAnalysisComplete: (data: any) => void;
+  onAnalyzingChange?: (isAnalyzing: boolean, cancel?: () => void) => void;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 const INDUSTRY_OPTIONS = [
-  '반도체',
-  'AI 인공지능',
-  '금융',
-  '제조업',
-  '바이오 헬스케어',
-  '유통 커머스',
-  '콘텐츠 미디어',
-  '에너지 환경',
-  '자동차 모빌리티',
-  '건설 부동산',
-  '방산',
+  '반도체', 'IT 서비스', 'AI 인공지능', '게임',
+  '금융', '통신', '바이오 헬스케어', '자동차 모빌리티',
+  '화학/소재', '에너지 환경', '유통 커머스', '콘텐츠 미디어',
+  '건설 부동산', '방산', '제조업',
 ];
-const LOADING_STEPS = [
-  'PDF 내용을 읽고 있습니다...',
-  '핵심 경험과 스킬을 추출하고 있습니다...',
-  '산업 뉴스 연관도를 분석하고 있습니다...',
-  'SWOT와 최종 리포트를 생성하고 있습니다...',
+const PIPELINE_STEPS = [
+  { step: 1, label: 'PDF 파싱' },
+  { step: 2, label: '자소서 AI 분석' },
+  { step: 3, label: '검색 쿼리 최적화' },
+  { step: 4, label: '관련 뉴스 하이브리드 검색' },
+  { step: 5, label: 'SWOT + 산업 연관성 분석' },
+  { step: 6, label: '최종 면접 리포트 생성' },
 ];
 
-export function UploadSection({ onAnalysisComplete }: UploadSectionProps) {
+const card: React.CSSProperties = {
+  backgroundColor: '#ffffff',
+  borderRadius: '16px',
+  padding: '28px',
+  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+};
+
+export function UploadSection({ onAnalysisComplete, onAnalyzingChange }: UploadSectionProps) {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    targetIndustry: '',
-    targetCompany: '',
-    targetPosition: '',
-  });
+  const [formData, setFormData] = useState({ targetIndustry: '', targetCompany: '', targetPosition: '', careerLevel: '신입' });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [loadingStepIndex, setLoadingStepIndex] = useState(0);
+  const [activeSteps, setActiveSteps] = useState<Set<number>>(new Set());
+  const [activeLabel, setActiveLabel] = useState('');
+  const [activeDetail, setActiveDetail] = useState('');
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const completedStepsRef = useRef<Set<number>>(new Set());
+  const activeStepsRef = useRef<Set<number>>(new Set());
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
     if (!isAnalyzing) {
-      setLoadingStepIndex(0);
+      setActiveSteps(new Set()); activeStepsRef.current = new Set();
+      setActiveLabel(''); setActiveDetail('');
+      setCompletedSteps(new Set()); completedStepsRef.current = new Set();
       setElapsedSeconds(0);
       return;
     }
-
-    const stepTimer = window.setInterval(() => {
-      setLoadingStepIndex((prev) => (prev + 1) % LOADING_STEPS.length);
-    }, 3000);
-
-    const elapsedTimer = window.setInterval(() => {
-      setElapsedSeconds((prev) => prev + 1);
-    }, 1000);
-
-    return () => {
-      window.clearInterval(stepTimer);
-      window.clearInterval(elapsedTimer);
-    };
+    const timer = window.setInterval(() => setElapsedSeconds((p) => p + 1), 1000);
+    return () => window.clearInterval(timer);
   }, [isAnalyzing]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setUploadedFile(file);
-      setSubmitError(null);
-    }
+    if (file) { setUploadedFile(file); setSubmitError(null); }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!uploadedFile) {
-      setSubmitError('PDF 파일을 먼저 업로드해주세요.');
-      return;
-    }
-
-    setIsAnalyzing(true);
-    setSubmitError(null);
-
+    if (!uploadedFile) { setSubmitError('PDF 파일을 먼저 업로드해주세요.'); return; }
+    cancelledRef.current = false;
+    setIsAnalyzing(true); setSubmitError(null);
+    const cancel = () => { cancelledRef.current = true; };
+    onAnalyzingChange?.(true, cancel);
     try {
       const payload = new FormData();
       payload.append('file', uploadedFile);
-      if (formData.targetIndustry.trim()) {
-        payload.append('industry', formData.targetIndustry.trim());
-      }
-      if (formData.targetCompany.trim()) {
-        payload.append('company', formData.targetCompany.trim());
-      }
-      if (formData.targetPosition.trim()) {
-        payload.append('job_title', formData.targetPosition.trim());
-      }
+      if (formData.targetIndustry.trim()) payload.append('industry', formData.targetIndustry.trim());
+      if (formData.targetCompany.trim()) payload.append('company', formData.targetCompany.trim());
+      if (formData.targetPosition.trim()) payload.append('job_title', formData.targetPosition.trim());
+      payload.append('career_level', formData.careerLevel);
       payload.append('include_raw_news', 'true');
+      payload.append('report_mode', 'fast');
 
-      const response = await fetch(`${API_BASE_URL}/api/v1/analysis/report`, {
-        method: 'POST',
-        body: payload,
-      });
+      const response = await fetch(`${API_BASE_URL}/api/v1/analysis/report/stream`, { method: 'POST', body: payload });
+      if (!response.ok || !response.body) throw new Error((await response.text()) || `요청 실패 (${response.status})`);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || `요청 실패 (${response.status})`);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        if (cancelledRef.current) { reader.cancel(); break; }
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split('\n\n');
+        buffer = events.pop() ?? '';
+        for (const event of events) {
+          if (cancelledRef.current) break;
+          const dataLine = event.split('\n').find((l) => l.startsWith('data: '));
+          if (!dataLine) continue;
+          try {
+            const parsed = JSON.parse(dataLine.slice(6));
+            if (parsed.type === 'progress') {
+              if (parsed.status === 'done') {
+                activeStepsRef.current = new Set([...activeStepsRef.current].filter(s => s !== parsed.step));
+                setActiveSteps(new Set(activeStepsRef.current));
+                const next = new Set(completedStepsRef.current).add(parsed.step);
+                completedStepsRef.current = next; setCompletedSteps(new Set(next));
+              } else {
+                activeStepsRef.current = new Set([...activeStepsRef.current, parsed.step]);
+                setActiveSteps(new Set(activeStepsRef.current));
+              }
+              setActiveLabel(parsed.label); setActiveDetail(parsed.detail ?? '');
+            } else if (parsed.type === 'result') {
+              onAnalysisComplete({ ...parsed.data, apiResponse: parsed.data });
+            } else if (parsed.type === 'error') {
+              throw new Error(parsed.message);
+            }
+          } catch (parseErr) {
+            if (parseErr instanceof SyntaxError) continue;
+            throw parseErr;
+          }
+        }
       }
-
-      const reportData = await response.json().catch(() => ({}));
-      onAnalysisComplete({
-        file: uploadedFile,
-        ...formData,
-        ...reportData,
-        apiResponse: reportData,
-      });
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : '분석 요청 중 알 수 없는 오류가 발생했습니다.';
-      setSubmitError(message);
+      if (!cancelledRef.current) {
+        setSubmitError(error instanceof Error ? error.message : '분석 요청 중 알 수 없는 오류가 발생했습니다.');
+      }
     } finally {
       setIsAnalyzing(false);
+      onAnalyzingChange?.(false);
     }
   };
 
   if (isAnalyzing) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center px-4">
-        <div className="w-full max-w-2xl rounded-2xl border border-blue-100 bg-white shadow-xl p-8">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-              <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
-            </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 0' }}>
+        <div style={{ ...card, width: '100%', maxWidth: '440px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+            <Loader2 style={{ width: '20px', height: '20px', color: '#3182F6', flexShrink: 0 }} className="animate-spin" />
             <div>
-              <h3 className="text-xl font-bold text-slate-900">AI 분석 리포트 생성 중</h3>
-              <p className="text-sm text-slate-600">분석이 끝나면 결과 화면으로 자동 이동합니다</p>
+              <p style={{ fontWeight: 700, color: '#191F28', fontSize: '15px' }}>AI 분석 리포트 생성 중</p>
+              <p style={{ fontSize: '12px', color: '#8B95A1', marginTop: '2px' }}>분석이 끝나면 결과 화면으로 이동합니다</p>
             </div>
           </div>
 
-          <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm font-medium text-blue-800 animate-pulse">
-              {LOADING_STEPS[loadingStepIndex]}
-            </p>
+          {activeLabel && (
+            <div style={{ marginBottom: '20px', padding: '12px 16px', backgroundColor: '#EFF6FF', borderRadius: '10px' }}>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: '#1D4ED8' }}>{activeLabel}</p>
+              {activeDetail && <p style={{ fontSize: '12px', color: '#3B82F6', marginTop: '2px' }}>{activeDetail}</p>}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {PIPELINE_STEPS.map(({ step, label }) => {
+              const isDone = completedSteps.has(step);
+              const isActive = activeSteps.has(step) && !isDone;
+              return (
+                <div key={step} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {isDone ? (
+                    <CheckCircle2 style={{ width: '16px', height: '16px', color: '#22C55E', flexShrink: 0 }} />
+                  ) : isActive ? (
+                    <Loader2 style={{ width: '16px', height: '16px', color: '#3182F6', flexShrink: 0 }} className="animate-spin" />
+                  ) : (
+                    <span style={{ width: '16px', height: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#E2E8F0', display: 'block' }} />
+                    </span>
+                  )}
+                  <span style={{
+                    fontSize: '13px',
+                    color: isDone ? '#CBD5E1' : isActive ? '#191F28' : '#CBD5E1',
+                    fontWeight: isActive ? 600 : 400,
+                    textDecoration: isDone ? 'line-through' : 'none',
+                  }}>
+                    {label}
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
-          <div className="space-y-2 text-sm text-slate-600">
-            {LOADING_STEPS.map((step, index) => (
-              <div key={step} className="flex items-center gap-2">
-                <span
-                  className={`h-2.5 w-2.5 rounded-full ${
-                    index <= loadingStepIndex ? 'bg-blue-500' : 'bg-slate-300'
-                  }`}
-                />
-                <span>{step}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-5 pt-3 border-t border-slate-200 flex items-center justify-between text-xs">
-            <span className="text-slate-500">{uploadedFile?.name || 'PDF 파일'} 처리 중</span>
-            <span className="font-semibold text-blue-700">{elapsedSeconds}초 경과</span>
+          <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '12px', color: '#8B95A1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '220px' }}>
+              {uploadedFile?.name}
+            </span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#3182F6' }}>{elapsedSeconds}초</span>
           </div>
         </div>
       </div>
@@ -160,128 +187,162 @@ export function UploadSection({ onAnalysisComplete }: UploadSectionProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
       {/* Upload Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-            <FileText className="w-5 h-5 text-blue-600" />
-          </div>
-          <h2 className="font-bold text-slate-900 text-xl">자소서 업로드</h2>
-        </div>
-
-        <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors cursor-pointer bg-slate-50">
-          <input
-            type="file"
-            accept=".pdf"
-            onChange={handleFileUpload}
-            className="hidden"
-            id="file-upload"
-          />
-          <label htmlFor="file-upload" className="cursor-pointer">
-            <div className="flex flex-col items-center">
-              <Upload className="w-10 h-10 text-slate-400 mb-3" />
-              {uploadedFile ? (
-                <div className="flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-lg">
-                  <FileText className="w-5 h-5 text-blue-600" />
-                  <span className="font-medium text-blue-900">{uploadedFile.name}</span>
-                </div>
-              ) : (
-                <>
-                  <p className="font-medium text-slate-900 mb-1">PDF 파일을 업로드하세요</p>
-                  <p className="text-sm text-slate-500">또는 클릭하여 파일 선택</p>
-                </>
-              )}
+      <div style={card}>
+        <p style={{ fontWeight: 700, fontSize: '16px', color: '#191F28', marginBottom: '20px' }}>자소서 PDF 업로드</p>
+        <input type="file" accept=".pdf" onChange={handleFileUpload} className="hidden" id="file-upload" />
+        <label
+          htmlFor="file-upload"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: '140px',
+            borderRadius: '12px',
+            border: `2px dashed ${uploadedFile ? '#3182F6' : '#CBD5E1'}`,
+            backgroundColor: uploadedFile ? '#EFF6FF' : '#F8FAFC',
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+          }}
+        >
+          {uploadedFile ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FileText style={{ width: '20px', height: '20px', color: '#3182F6' }} />
+              <span style={{ fontSize: '14px', fontWeight: 600, color: '#3182F6' }}>{uploadedFile.name}</span>
             </div>
-          </label>
-        </div>
+          ) : (
+            <>
+              <Upload style={{ width: '28px', height: '28px', color: '#94A3B8', marginBottom: '10px' }} />
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#475569' }}>PDF 파일을 선택하세요</p>
+              <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px' }}>최대 5MB</p>
+            </>
+          )}
+        </label>
 
-        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm text-blue-900">
-            <strong>💡 Tip:</strong> 자소서 PDF를 업로드하면 AI가 자동으로 분석하여 개선점을 제안합니다.
+        <div style={{ marginTop: '16px', padding: '12px 16px', backgroundColor: '#F0F9FF', borderRadius: '10px' }}>
+          <p style={{ fontSize: '13px', color: '#0369A1', lineHeight: 1.6 }}>
+            💡 자소서 PDF를 업로드하면 AI가 자동으로 분석하여 맞춤형 면접 전략을 제안합니다.
           </p>
         </div>
       </div>
 
-      {/* Information Form */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-            <User className="w-5 h-5 text-green-600" />
-          </div>
-          <h2 className="font-bold text-slate-900 text-xl">지원 정보 입력</h2>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-3">
+      {/* Form Card */}
+      <div style={card}>
+        <p style={{ fontWeight: 700, fontSize: '16px', color: '#191F28', marginBottom: '20px' }}>지원 정보 입력</p>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
           {submitError && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <div style={{ padding: '10px 14px', backgroundColor: '#FFF2F2', borderRadius: '8px', fontSize: '13px', color: '#DC2626', border: '1px solid #FECACA' }}>
               {submitError}
             </div>
           )}
+
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              <Briefcase className="w-4 h-4 inline mr-1" />
-              희망 산업군
-            </label>
-            <div className="flex flex-wrap gap-2">
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '10px' }}>희망 산업군</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
               {INDUSTRY_OPTIONS.map((industry) => {
-                const isSelected = formData.targetIndustry === industry;
+                const isSel = formData.targetIndustry === industry;
                 return (
                   <button
                     key={industry}
                     type="button"
-                    onClick={() =>
-                      setFormData({
-                        ...formData,
-                        targetIndustry: isSelected ? '' : industry,
-                      })
-                    }
-                    className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                      isSelected
-                        ? 'bg-blue-600 border-blue-600 text-white'
-                        : 'bg-white border-slate-300 text-slate-700 hover:border-blue-300 hover:text-blue-700'
-                    }`}
+                    onClick={() => setFormData({ ...formData, targetIndustry: isSel ? '' : industry })}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: '100px',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      border: `1px solid ${isSel ? '#3182F6' : '#E2E8F0'}`,
+                      backgroundColor: isSel ? '#3182F6' : '#F8FAFC',
+                      color: isSel ? '#ffffff' : '#64748B',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
                   >
                     {industry}
                   </button>
                 );
               })}
             </div>
+            <input
+              type="text"
+              value={INDUSTRY_OPTIONS.includes(formData.targetIndustry) ? '' : formData.targetIndustry}
+              onChange={(e) => setFormData({ ...formData, targetIndustry: e.target.value })}
+              style={{ width: '100%', padding: '10px 14px', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '13px', color: '#191F28', backgroundColor: '#FAFAFA', outline: 'none', boxSizing: 'border-box' }}
+              placeholder="목록에 없으면 직접 입력"
+            />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              <Building2 className="w-4 h-4 inline mr-1" />
-              목표 기업
-            </label>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>목표 기업</label>
             <input
               type="text"
               value={formData.targetCompany}
               onChange={(e) => setFormData({ ...formData, targetCompany: e.target.value })}
-              className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="예: 삼성전자, 네이버 등"
+              style={{ width: '100%', padding: '10px 14px', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '13px', color: '#191F28', backgroundColor: '#FAFAFA', outline: 'none', boxSizing: 'border-box' }}
+              placeholder="예: 삼성전자, 네이버"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              희망 직무
-            </label>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>희망 직무</label>
             <input
               type="text"
               value={formData.targetPosition}
               onChange={(e) => setFormData({ ...formData, targetPosition: e.target.value })}
-              className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="예: 소프트웨어 엔지니어, 데이터 분석가 등"
+              style={{ width: '100%', padding: '10px 14px', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '13px', color: '#191F28', backgroundColor: '#FAFAFA', outline: 'none', boxSizing: 'border-box' }}
+              placeholder="예: 소프트웨어 엔지니어, 데이터 분석가"
             />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>지원 유형</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {(['신입', '경력'] as const).map((level) => {
+                const isSel = formData.careerLevel === level;
+                return (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, careerLevel: level })}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      borderRadius: '10px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      border: `1.5px solid ${isSel ? '#2563EB' : '#E2E8F0'}`,
+                      backgroundColor: isSel ? '#EFF6FF' : '#FAFAFA',
+                      color: isSel ? '#2563EB' : '#94A3B8',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {level}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <button
             type="submit"
             disabled={!uploadedFile || isAnalyzing}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            style={{
+              width: '100%',
+              padding: '13px',
+              borderRadius: '12px',
+              fontSize: '14px',
+              fontWeight: 700,
+              color: '#ffffff',
+              backgroundColor: uploadedFile && !isAnalyzing ? '#3182F6' : '#CBD5E1',
+              border: 'none',
+              cursor: uploadedFile && !isAnalyzing ? 'pointer' : 'not-allowed',
+              transition: 'background-color 0.15s',
+            }}
           >
-            <Sparkles className="w-5 h-5" />
             AI 분석 시작
           </button>
         </form>

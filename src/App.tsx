@@ -6,223 +6,158 @@ import { IndustryAnalysis } from './components/IndustryAnalysis';
 import { ResumeReview } from './components/ResumeReview';
 import { SwotAnalysis } from './components/SwotAnalysis';
 import { FinalReportSummary } from './components/FinalReportSummary';
-import { FileText, TrendingUp, Edit3, Target, Download } from 'lucide-react';
+import { Download } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'upload' | 'analysis'>('upload');
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const reportExportRef = useRef<HTMLDivElement | null>(null);
+  const cancelAnalysisRef = useRef<(() => void) | null>(null);
 
-  const handleAnalysisComplete = (data: any) => {
-    setAnalysisData(data);
-    setActiveTab('analysis');
+  const handleAnalysisComplete = (data: any) => { setAnalysisData(data); setActiveTab('analysis'); };
+
+  const handleTabClick = (tab: 'upload' | 'analysis') => {
+    if (tab === activeTab) return;
+    if (isAnalyzing) {
+      const confirmed = window.confirm('분석이 취소됩니다. 계속하시겠습니까?');
+      if (!confirmed) return;
+      cancelAnalysisRef.current?.();
+    }
+    setActiveTab(tab);
   };
 
-  const tabs = [
-    { id: 'upload', label: '자소서 업로드', icon: FileText },
-    { id: 'analysis', label: '분석 결과', icon: TrendingUp },
-  ];
-
-  const apiResponse = analysisData?.apiResponse ?? analysisData ?? {};
-  const resumeProfile = apiResponse.resume_profile ?? {};
-
-  const makeSafeFileName = (value: string) =>
-    value
-      .trim()
-      .replace(/\s+/g, '-')
-      .replace(/[^\w\-가-힣]/g, '')
-      .slice(0, 40) || 'analysis-report';
-
-  const downloadFile = (content: string, fileName: string, mimeType: string) => {
-    const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
+  const api = analysisData?.apiResponse ?? analysisData ?? {};
+  const profile = api.resume_profile ?? {};
+  const slug = (v: string) => v.trim().replace(/\s+/g, '-').replace(/[^\w\-가-힣]/g, '').slice(0, 40) || 'report';
 
   const handleExportPdf = async () => {
     if (!reportExportRef.current) return;
-    const target = reportExportRef.current;
-
     try {
       setIsExportingPdf(true);
-      const dataUrl = await toPng(target, {
-        cacheBust: true,
-        pixelRatio: 2,
-        backgroundColor: '#ffffff',
-      });
-
-      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = reject;
-        img.src = dataUrl;
-      });
-
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const margin = 10;
-      const pageWidth = 210 - margin * 2;
-      const pageHeight = 297 - margin * 2;
-      const imageWidth = image.width;
-      const imageHeight = image.height;
-      const renderedHeight = (imageHeight * pageWidth) / imageWidth;
+      const margin = 12, pageW = 210, pageH = 297;
+      const printW = pageW - margin * 2;
+      const maxH = pageH - margin * 2;
+      let curY = margin;
+      let isFirstSection = true;
 
-      let heightLeft = renderedHeight;
-      let position = margin;
-      pdf.addImage(dataUrl, 'PNG', margin, position, pageWidth, renderedHeight, undefined, 'FAST');
-      heightLeft -= pageHeight;
+      const sections = Array.from(reportExportRef.current.children) as HTMLElement[];
+      for (const section of sections) {
+        const dataUrl = await toPng(section, { cacheBust: true, pixelRatio: 2, backgroundColor: '#F5F6FA' });
+        const img = await new Promise<HTMLImageElement>((res, rej) => {
+          const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = dataUrl;
+        });
+        const imgH = (img.height * printW) / img.width;
 
-      while (heightLeft > 0) {
-        position = heightLeft - renderedHeight + margin;
-        pdf.addPage();
-        pdf.addImage(dataUrl, 'PNG', margin, position, pageWidth, renderedHeight, undefined, 'FAST');
-        heightLeft -= pageHeight;
+        // 현재 페이지에 안 들어가면 새 페이지로
+        if (!isFirstSection && curY + imgH > pageH - margin) {
+          pdf.addPage();
+          curY = margin;
+        }
+
+        // 단일 섹션이 한 페이지를 넘는 경우 — 기계적으로 분할
+        if (imgH > maxH) {
+          let remaining = imgH;
+          let srcY = 0;
+          while (remaining > 0) {
+            const sliceH = Math.min(remaining, maxH - curY + margin);
+            const sliceRatio = sliceH / imgH;
+            const srcSliceH = Math.round(img.height * sliceRatio);
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = srcSliceH;
+            const ctx = canvas.getContext('2d')!;
+            ctx.drawImage(img, 0, -Math.round(srcY));
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', margin, curY, printW, sliceH, undefined, 'FAST');
+            srcY += srcSliceH;
+            remaining -= sliceH;
+            curY += sliceH;
+            if (remaining > 0) { pdf.addPage(); curY = margin; }
+          }
+        } else {
+          pdf.addImage(dataUrl, 'PNG', margin, curY, printW, imgH, undefined, 'FAST');
+          curY += imgH + 4;
+        }
+        isFirstSection = false;
       }
 
-      const dateLabel = new Date().toISOString().slice(0, 10);
-      const company = makeSafeFileName(resumeProfile.company || 'company');
-      const jobTitleSlug = makeSafeFileName(resumeProfile.job_title || 'position');
-      const fileName = `${dateLabel}-${company}-${jobTitleSlug}-ui-report.pdf`;
-      const pdfBlob = pdf.output('blob');
-      const blobUrl = URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-    } catch (error) {
-      window.alert('PDF 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
-      console.error(error);
-    } finally {
-      setIsExportingPdf(false);
-    }
+      const burl = URL.createObjectURL(pdf.output('blob'));
+      const a = document.createElement('a'); a.href = burl; a.download = `${new Date().toISOString().slice(0, 10)}-${slug(profile.company || 'company')}-report.pdf`;
+      document.body.appendChild(a); a.click(); a.remove(); window.setTimeout(() => URL.revokeObjectURL(burl), 1000);
+    } catch (e) { window.alert('PDF 생성 중 오류가 발생했습니다.'); console.error(e); }
+    finally { setIsExportingPdf(false); }
   };
 
   const handleExportJson = () => {
-    const now = new Date();
-    const dateLabel = now.toISOString().slice(0, 10);
-    const company = makeSafeFileName(resumeProfile.company || 'company');
-    const json = JSON.stringify(apiResponse, null, 2);
-
-    downloadFile(json, `${dateLabel}-${company}-full-report.json`, 'application/json');
+    const blob = new Blob([JSON.stringify(api, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob); const a = document.createElement('a');
+    a.href = url; a.download = `${new Date().toISOString().slice(0, 10)}-${slug(profile.company || 'company')}-full.json`;
+    a.click(); URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div style={{ minHeight: '100vh', backgroundColor: '#F5F6FA', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 shadow-sm">
-        <div className="max-w-[1400px] mx-auto px-8 py-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="font-bold text-slate-900 text-2xl">AI 취업 전략 대시보드</h1>
-              <p className="text-sm text-slate-600 mt-1">매일경제 빅데이터 × LangGraph 기반 분석</p>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium text-blue-900">AI 분석 준비 완료</span>
-            </div>
+      <header style={{ backgroundColor: '#ffffff', borderBottom: '1px solid #E5E7EB' }}>
+        <div style={{ maxWidth: '980px', margin: '0 auto', padding: '0 28px' }}>
+          <div style={{ paddingTop: '20px', paddingBottom: '0' }}>
+            <h1 style={{ fontWeight: 800, fontSize: '20px', color: '#111827', margin: 0, letterSpacing: '-0.3px' }}>AI 취업 전략 리포트</h1>
+            <p style={{ fontSize: '13px', color: '#9CA3AF', marginTop: '4px' }}>자소서 기반 맞춤형 면접 전략을 분석합니다</p>
           </div>
-        </div>
-      </header>
-
-      {/* Tab Navigation */}
-      <div className="max-w-[1400px] mx-auto px-8 mt-6">
-        <div className="flex items-center gap-3">
-          <div className="flex gap-2 bg-white rounded-lg p-1 shadow-sm border border-slate-200 w-fit">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
+          {/* Tabs */}
+          <div style={{ display: 'flex', marginTop: '12px' }}>
+            {(['upload', 'analysis'] as const).map((tab) => {
+              const isActive = activeTab === tab;
               return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-md transition-all ${
-                    activeTab === tab.id
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium">{tab.label}</span>
+                <button key={tab} onClick={() => handleTabClick(tab)} style={{
+                  padding: '10px 4px', marginRight: '28px', fontSize: '14px', fontWeight: isActive ? 700 : 400,
+                  color: isActive ? '#111827' : '#9CA3AF',
+                  background: 'none', border: 'none',
+                  borderBottom: isActive ? '2px solid #2563EB' : '2px solid transparent',
+                  cursor: 'pointer', transition: 'all 0.15s',
+                }}>
+                  {tab === 'upload' ? '자소서 업로드' : '분석 결과'}
                 </button>
               );
             })}
           </div>
-          {activeTab === 'analysis' && analysisData && (
-            <div className="flex items-center gap-2 ml-auto">
-              <button
-                type="button"
-                onClick={handleExportPdf}
-                disabled={isExportingPdf}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:border-blue-300 hover:text-blue-700"
-              >
-                <Download className="h-4 w-4" />
-                {isExportingPdf ? 'PDF 생성 중...' : 'UI 리포트(.pdf)'}
-              </button>
-              <button
-                type="button"
-                onClick={handleExportJson}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:border-blue-300 hover:text-blue-700"
-              >
-                <Download className="h-4 w-4" />
-                원본(.json)
-              </button>
-            </div>
-          )}
         </div>
-      </div>
+      </header>
 
-      {/* Main Content */}
-      <main className="max-w-[1400px] mx-auto px-8 py-6">
+      {/* Main */}
+      <main style={{ maxWidth: '980px', margin: '0 auto', padding: '28px 28px 80px' }}>
         {activeTab === 'upload' ? (
-          <UploadSection onAnalysisComplete={handleAnalysisComplete} />
+          <UploadSection
+            onAnalysisComplete={handleAnalysisComplete}
+            onAnalyzingChange={(analyzing, cancel) => {
+              setIsAnalyzing(analyzing);
+              cancelAnalysisRef.current = cancel ?? null;
+            }}
+          />
         ) : (
-          <div className="space-y-5" ref={reportExportRef} id="report-export-root">
-            {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <TrendingUp className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-600">분석 완료</p>
-                    <p className="font-bold text-slate-900 text-xl">산업 동향</p>
-                  </div>
+          <div ref={reportExportRef} id="report-export-root" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {(profile.company || profile.job_title) && (
+              <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '36px' }}>
+                  {[{ label: '지원 기업', val: profile.company }, { label: '직무', val: profile.job_title }, { label: '산업', val: profile.industry }]
+                    .filter(i => i.val).map(item => (
+                      <div key={item.label}>
+                        <p style={{ fontSize: '11px', color: '#9CA3AF', marginBottom: '2px', fontWeight: 500 }}>{item.label}</p>
+                        <p style={{ fontSize: '15px', fontWeight: 700, color: '#111827' }}>{item.val}</p>
+                      </div>
+                    ))}
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {[{ label: isExportingPdf ? '생성 중...' : 'PDF', fn: handleExportPdf, dis: isExportingPdf }, { label: 'JSON', fn: handleExportJson, dis: false }].map(b => (
+                    <button key={b.label} onClick={b.fn} disabled={b.dis} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: '#4B5563', backgroundColor: '#F3F4F6', border: 'none', cursor: 'pointer' }}>
+                      <Download style={{ width: '13px', height: '13px' }} />{b.label}
+                    </button>
+                  ))}
                 </div>
               </div>
-
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <Edit3 className="w-6 h-6 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-600">첨삭 완료</p>
-                    <p className="font-bold text-slate-900 text-xl">자소서 리뷰</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <Target className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-600">전략 수립</p>
-                    <p className="font-bold text-slate-900 text-xl">SWOT 분석</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Analysis Sections */}
+            )}
             <ResumeReview data={analysisData} />
             <IndustryAnalysis data={analysisData} />
             <SwotAnalysis data={analysisData} />
