@@ -90,6 +90,7 @@ export function UploadSection({ onAnalysisComplete }: UploadSectionProps) {
         payload.append('job_title', formData.targetPosition.trim());
       }
       payload.append('include_raw_news', 'true');
+      payload.append('report_mode', 'fast');
 
       const response = await fetch(`${API_BASE_URL}/api/v1/analysis/report`, {
         method: 'POST',
