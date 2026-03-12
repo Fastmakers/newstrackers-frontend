@@ -1,18 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import { Upload, FileText, Loader2, CheckCircle2 } from 'lucide-react';
+import { createJob, streamJob, StreamEvent } from '../api';
 
 interface UploadSectionProps {
   onAnalysisComplete: (data: any) => void;
   onAnalyzingChange?: (isAnalyzing: boolean, cancel?: () => void) => void;
+  /** 진행 중인 job에 재접속할 때 job_id를 넘기면 폼 없이 바로 스트림 시작 */
+  reconnectJobId?: string | null;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 const INDUSTRY_OPTIONS = [
   '반도체', 'IT 서비스', 'AI 인공지능', '게임',
   '금융', '통신', '바이오 헬스케어', '자동차 모빌리티',
   '화학/소재', '에너지 환경', '유통 커머스', '콘텐츠 미디어',
   '건설 부동산', '방산', '제조업',
 ];
+
+// step 1은 POST /jobs 단계에서 완료 (PDF 파싱은 job 생성 시 서버에서 처리)
 const PIPELINE_STEPS = [
   { step: 1, label: 'PDF 파싱' },
   { step: 2, label: '자소서 AI 분석' },
@@ -29,7 +33,7 @@ const card: React.CSSProperties = {
   boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
 };
 
-export function UploadSection({ onAnalysisComplete, onAnalyzingChange }: UploadSectionProps) {
+export function UploadSection({ onAnalysisComplete, onAnalyzingChange, reconnectJobId }: UploadSectionProps) {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState({ targetIndustry: '', targetCompany: '', targetPosition: '', careerLevel: '신입' });
@@ -38,22 +42,65 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange }: UploadS
   const [activeLabel, setActiveLabel] = useState('');
   const [activeDetail, setActiveDetail] = useState('');
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [progressPct, setProgressPct] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const completedStepsRef = useRef<Set<number>>(new Set());
   const activeStepsRef = useRef<Set<number>>(new Set());
-  const cancelledRef = useRef(false);
+  const abortRef = useRef<ReturnType<typeof streamJob> | null>(null);
+
+  // 재접속 요청이 들어오면 바로 스트림 시작
+  useEffect(() => {
+    if (reconnectJobId) startStream(reconnectJobId);
+  }, [reconnectJobId]);
 
   useEffect(() => {
     if (!isAnalyzing) {
       setActiveSteps(new Set()); activeStepsRef.current = new Set();
       setActiveLabel(''); setActiveDetail('');
       setCompletedSteps(new Set()); completedStepsRef.current = new Set();
-      setElapsedSeconds(0);
+      setElapsedSeconds(0); setProgressPct(0);
       return;
     }
     const timer = window.setInterval(() => setElapsedSeconds((p) => p + 1), 1000);
     return () => window.clearInterval(timer);
   }, [isAnalyzing]);
+
+  const startStream = (jobId: string) => {
+    setIsAnalyzing(true);
+    const cancel = () => abortRef.current?.abort();
+    onAnalyzingChange?.(true, cancel);
+
+    abortRef.current = streamJob(
+      jobId,
+      (event: StreamEvent) => {
+        if (event.type === 'progress') {
+          const { step, status, label, detail, progress_pct } = event;
+          setActiveLabel(label);
+          setActiveDetail(detail ?? '');
+          if (progress_pct != null) setProgressPct(progress_pct);
+
+          if (status === 'done') {
+            activeStepsRef.current = new Set([...activeStepsRef.current].filter((s) => s !== step));
+            setActiveSteps(new Set(activeStepsRef.current));
+            const next = new Set(completedStepsRef.current).add(step);
+            completedStepsRef.current = next;
+            setCompletedSteps(new Set(next));
+          } else {
+            activeStepsRef.current = new Set([...activeStepsRef.current, step]);
+            setActiveSteps(new Set(activeStepsRef.current));
+          }
+        } else if (event.type === 'result') {
+          onAnalysisComplete({ ...event.data, apiResponse: event.data });
+        } else if (event.type === 'error') {
+          setSubmitError(event.message);
+        }
+      },
+      () => {
+        setIsAnalyzing(false);
+        onAnalyzingChange?.(false);
+      },
+    );
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -63,71 +110,68 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange }: UploadS
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!uploadedFile) { setSubmitError('PDF 파일을 먼저 업로드해주세요.'); return; }
-    cancelledRef.current = false;
-    setIsAnalyzing(true); setSubmitError(null);
-    const cancel = () => { cancelledRef.current = true; };
-    onAnalyzingChange?.(true, cancel);
+    setSubmitError(null);
+
+    const payload = new FormData();
+    payload.append('file', uploadedFile);
+    if (formData.targetIndustry.trim()) payload.append('industry', formData.targetIndustry.trim());
+    if (formData.targetCompany.trim()) payload.append('company', formData.targetCompany.trim());
+    if (formData.targetPosition.trim()) payload.append('job_title', formData.targetPosition.trim());
+    payload.append('career_level', formData.careerLevel);
+
     try {
-      const payload = new FormData();
-      payload.append('file', uploadedFile);
-      if (formData.targetIndustry.trim()) payload.append('industry', formData.targetIndustry.trim());
-      if (formData.targetCompany.trim()) payload.append('company', formData.targetCompany.trim());
-      if (formData.targetPosition.trim()) payload.append('job_title', formData.targetPosition.trim());
-      payload.append('career_level', formData.careerLevel);
-      payload.append('include_raw_news', 'true');
-      payload.append('report_mode', 'fast');
+      // Step 1: job 생성 (서버에서 PDF 파싱도 여기서 완료됨)
+      setIsAnalyzing(true);
+      onAnalyzingChange?.(true, () => abortRef.current?.abort());
 
-      const response = await fetch(`${API_BASE_URL}/api/v1/analysis/report/stream`, { method: 'POST', body: payload });
-      if (!response.ok || !response.body) throw new Error((await response.text()) || `요청 실패 (${response.status})`);
+      const { job_id } = await createJob(payload);
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      while (true) {
-        if (cancelledRef.current) { reader.cancel(); break; }
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const events = buffer.split('\n\n');
-        buffer = events.pop() ?? '';
-        for (const event of events) {
-          if (cancelledRef.current) break;
-          const dataLine = event.split('\n').find((l) => l.startsWith('data: '));
-          if (!dataLine) continue;
-          try {
-            const parsed = JSON.parse(dataLine.slice(6));
-            if (parsed.type === 'progress') {
-              if (parsed.status === 'done') {
-                activeStepsRef.current = new Set([...activeStepsRef.current].filter(s => s !== parsed.step));
-                setActiveSteps(new Set(activeStepsRef.current));
-                const next = new Set(completedStepsRef.current).add(parsed.step);
-                completedStepsRef.current = next; setCompletedSteps(new Set(next));
-              } else {
-                activeStepsRef.current = new Set([...activeStepsRef.current, parsed.step]);
-                setActiveSteps(new Set(activeStepsRef.current));
-              }
-              setActiveLabel(parsed.label); setActiveDetail(parsed.detail ?? '');
-            } else if (parsed.type === 'result') {
-              onAnalysisComplete({ ...parsed.data, apiResponse: parsed.data });
-            } else if (parsed.type === 'error') {
-              throw new Error(parsed.message);
+      // step 1 완료 표시
+      completedStepsRef.current = new Set([1]);
+      setCompletedSteps(new Set([1]));
+      setProgressPct(10);
+
+      // Step 2-6: SSE 스트림 시작
+      abortRef.current = streamJob(
+        job_id,
+        (event: StreamEvent) => {
+          if (event.type === 'progress') {
+            const { step, status, label, detail, progress_pct } = event;
+            setActiveLabel(label);
+            setActiveDetail(detail ?? '');
+            if (progress_pct != null) setProgressPct(progress_pct);
+
+            if (status === 'done') {
+              activeStepsRef.current = new Set([...activeStepsRef.current].filter((s) => s !== step));
+              setActiveSteps(new Set(activeStepsRef.current));
+              const next = new Set(completedStepsRef.current).add(step);
+              completedStepsRef.current = next;
+              setCompletedSteps(new Set(next));
+            } else {
+              activeStepsRef.current = new Set([...activeStepsRef.current, step]);
+              setActiveSteps(new Set(activeStepsRef.current));
             }
-          } catch (parseErr) {
-            if (parseErr instanceof SyntaxError) continue;
-            throw parseErr;
+          } else if (event.type === 'result') {
+            onAnalysisComplete({ ...event.data, apiResponse: event.data });
+          } else if (event.type === 'error') {
+            setSubmitError(event.message);
           }
-        }
-      }
+        },
+        () => {
+          setIsAnalyzing(false);
+          onAnalyzingChange?.(false);
+        },
+      );
     } catch (error) {
-      if (!cancelledRef.current) {
-        setSubmitError(error instanceof Error ? error.message : '분석 요청 중 알 수 없는 오류가 발생했습니다.');
-      }
-    } finally {
       setIsAnalyzing(false);
       onAnalyzingChange?.(false);
+      setSubmitError(error instanceof Error ? error.message : '분석 요청 중 오류가 발생했습니다.');
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // 분석 진행 중 화면
+  // ---------------------------------------------------------------------------
   if (isAnalyzing) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 0' }}>
@@ -140,13 +184,25 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange }: UploadS
             </div>
           </div>
 
-          {activeLabel && (
-            <div style={{ marginBottom: '20px', padding: '12px 16px', backgroundColor: '#EFF6FF', borderRadius: '10px' }}>
-              <p style={{ fontSize: '13px', fontWeight: 600, color: '#1D4ED8' }}>{activeLabel}</p>
-              {activeDetail && <p style={{ fontSize: '12px', color: '#3B82F6', marginTop: '2px' }}>{activeDetail}</p>}
+          {/* progress bar */}
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+              {activeLabel && <span style={{ fontSize: '13px', fontWeight: 600, color: '#1D4ED8' }}>{activeLabel}</span>}
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#3182F6', marginLeft: 'auto' }}>{progressPct}%</span>
             </div>
-          )}
+            <div style={{ height: '6px', backgroundColor: '#E2E8F0', borderRadius: '100px', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                width: `${progressPct}%`,
+                backgroundColor: '#3182F6',
+                borderRadius: '100px',
+                transition: 'width 0.6s ease',
+              }} />
+            </div>
+            {activeDetail && <p style={{ fontSize: '12px', color: '#3B82F6', marginTop: '4px' }}>{activeDetail}</p>}
+          </div>
 
+          {/* step list */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {PIPELINE_STEPS.map(({ step, label }) => {
               const isDone = completedSteps.has(step);
@@ -177,7 +233,7 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange }: UploadS
 
           <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '12px', color: '#8B95A1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '220px' }}>
-              {uploadedFile?.name}
+              {uploadedFile?.name ?? '분석 진행 중'}
             </span>
             <span style={{ fontSize: '12px', fontWeight: 700, color: '#3182F6' }}>{elapsedSeconds}초</span>
           </div>
@@ -186,6 +242,9 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange }: UploadS
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // 업로드 폼
+  // ---------------------------------------------------------------------------
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
       {/* Upload Card */}
@@ -195,17 +254,11 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange }: UploadS
         <label
           htmlFor="file-upload"
           style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '100%',
-            height: '140px',
-            borderRadius: '12px',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            width: '100%', height: '140px', borderRadius: '12px',
             border: `2px dashed ${uploadedFile ? '#3182F6' : '#CBD5E1'}`,
             backgroundColor: uploadedFile ? '#EFF6FF' : '#F8FAFC',
-            cursor: 'pointer',
-            transition: 'all 0.15s',
+            cursor: 'pointer', transition: 'all 0.15s',
           }}
         >
           {uploadedFile ? (
@@ -245,20 +298,14 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange }: UploadS
               {INDUSTRY_OPTIONS.map((industry) => {
                 const isSel = formData.targetIndustry === industry;
                 return (
-                  <button
-                    key={industry}
-                    type="button"
+                  <button key={industry} type="button"
                     onClick={() => setFormData({ ...formData, targetIndustry: isSel ? '' : industry })}
                     style={{
-                      padding: '5px 12px',
-                      borderRadius: '100px',
-                      fontSize: '12px',
-                      fontWeight: 500,
+                      padding: '5px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 500,
                       border: `1px solid ${isSel ? '#3182F6' : '#E2E8F0'}`,
                       backgroundColor: isSel ? '#3182F6' : '#F8FAFC',
                       color: isSel ? '#ffffff' : '#64748B',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s',
+                      cursor: 'pointer', transition: 'all 0.15s',
                     }}
                   >
                     {industry}
@@ -277,9 +324,7 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange }: UploadS
 
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>목표 기업</label>
-            <input
-              type="text"
-              value={formData.targetCompany}
+            <input type="text" value={formData.targetCompany}
               onChange={(e) => setFormData({ ...formData, targetCompany: e.target.value })}
               style={{ width: '100%', padding: '10px 14px', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '13px', color: '#191F28', backgroundColor: '#FAFAFA', outline: 'none', boxSizing: 'border-box' }}
               placeholder="예: 삼성전자, 네이버"
@@ -288,9 +333,7 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange }: UploadS
 
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>희망 직무</label>
-            <input
-              type="text"
-              value={formData.targetPosition}
+            <input type="text" value={formData.targetPosition}
               onChange={(e) => setFormData({ ...formData, targetPosition: e.target.value })}
               style={{ width: '100%', padding: '10px 14px', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '13px', color: '#191F28', backgroundColor: '#FAFAFA', outline: 'none', boxSizing: 'border-box' }}
               placeholder="예: 소프트웨어 엔지니어, 데이터 분석가"
@@ -303,21 +346,14 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange }: UploadS
               {(['신입', '경력'] as const).map((level) => {
                 const isSel = formData.careerLevel === level;
                 return (
-                  <button
-                    key={level}
-                    type="button"
+                  <button key={level} type="button"
                     onClick={() => setFormData({ ...formData, careerLevel: level })}
                     style={{
-                      flex: 1,
-                      padding: '10px',
-                      borderRadius: '10px',
-                      fontSize: '14px',
-                      fontWeight: 600,
+                      flex: 1, padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 600,
                       border: `1.5px solid ${isSel ? '#2563EB' : '#E2E8F0'}`,
                       backgroundColor: isSel ? '#EFF6FF' : '#FAFAFA',
                       color: isSel ? '#2563EB' : '#94A3B8',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s',
+                      cursor: 'pointer', transition: 'all 0.15s',
                     }}
                   >
                     {level}
@@ -331,12 +367,8 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange }: UploadS
             type="submit"
             disabled={!uploadedFile || isAnalyzing}
             style={{
-              width: '100%',
-              padding: '13px',
-              borderRadius: '12px',
-              fontSize: '14px',
-              fontWeight: 700,
-              color: '#ffffff',
+              width: '100%', padding: '13px', borderRadius: '12px',
+              fontSize: '14px', fontWeight: 700, color: '#ffffff',
               backgroundColor: uploadedFile && !isAnalyzing ? '#3182F6' : '#CBD5E1',
               border: 'none',
               cursor: uploadedFile && !isAnalyzing ? 'pointer' : 'not-allowed',
