@@ -8,9 +8,10 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localho
 // 토큰 관리
 // ---------------------------------------------------------------------------
 
-export const getToken = (): string | null => localStorage.getItem('auth_token');
-export const setToken = (token: string) => localStorage.setItem('auth_token', token);
-export const clearToken = () => localStorage.removeItem('auth_token');
+import { useAuthStore } from './store/authStore';
+
+export const getToken = (): string | null => useAuthStore.getState().token;
+export const clearToken = () => useAuthStore.getState().logout();
 
 function authHeaders(): HeadersInit {
   const token = getToken();

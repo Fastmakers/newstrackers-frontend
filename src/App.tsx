@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import { jsPDF } from 'jspdf';
 import { toPng } from 'html-to-image';
 import { UploadSection } from './components/UploadSection';
@@ -6,38 +6,23 @@ import { IndustryAnalysis } from './components/IndustryAnalysis';
 import { ResumeReview } from './components/ResumeReview';
 import { SwotAnalysis } from './components/SwotAnalysis';
 import { FinalReportSummary } from './components/FinalReportSummary';
-import { AuthModal } from './components/AuthModal';
+import { AuthPanel, UserMenuPanel } from './components/AuthModal';
 import { JobHistory } from './components/JobHistory';
 import { Download, User, LogOut, History, ArrowLeft } from 'lucide-react';
-import { clearToken, getToken, UserInfo } from './api';
+import { useAuthStore } from './store/authStore';
 
 type Tab = 'upload' | 'history';
 
-function getSavedUser(): UserInfo | null {
-  try {
-    const raw = localStorage.getItem('user_info');
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
 export default function App() {
+  const { isAuthenticated, user, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState<Tab>('upload');
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [currentUser, setCurrentUser] = useState<UserInfo | null>(getSavedUser);
+  const [showAuthPanel, setShowAuthPanel] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const reportExportRef = useRef<HTMLDivElement | null>(null);
   const cancelAnalysisRef = useRef<(() => void) | null>(null);
-
-  useEffect(() => {
-    if (!getToken()) {
-      setCurrentUser(null);
-      localStorage.removeItem('user_info');
-    }
-  }, []);
 
   const handleAnalysisComplete = (data: any) => {
     setAnalysisData(data);
@@ -49,17 +34,6 @@ export default function App() {
       cancelAnalysisRef.current?.();
     }
     setActiveTab(tab);
-  };
-
-  const handleLogin = (user: UserInfo) => {
-    setCurrentUser(user);
-    localStorage.setItem('user_info', JSON.stringify(user));
-  };
-
-  const handleLogout = () => {
-    clearToken();
-    localStorage.removeItem('user_info');
-    setCurrentUser(null);
   };
 
   const api = analysisData?.apiResponse ?? analysisData ?? {};
@@ -150,14 +124,18 @@ export default function App() {
             </div>
 
             <div style={{ paddingTop: '4px' }}>
-              {currentUser ? (
+              {isAuthenticated && user ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <User style={{ width: '15px', height: '15px', color: '#6B7280' }} />
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>{currentUser.nickname}</span>
-                  </div>
                   <button
-                    onClick={handleLogout}
+                    id="user-menu-btn"
+                    onClick={() => { setShowUserMenu(v => !v); setShowAuthPanel(false); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                  >
+                    <User style={{ width: '15px', height: '15px', color: '#6B7280' }} />
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>{user.nickname}</span>
+                  </button>
+                  <button
+                    onClick={() => { logout(); setShowUserMenu(false); }}
                     style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#9CA3AF', background: 'none', border: 'none', cursor: 'pointer' }}
                   >
                     <LogOut style={{ width: '13px', height: '13px' }} />로그아웃
@@ -165,7 +143,8 @@ export default function App() {
                 </div>
               ) : (
                 <button
-                  onClick={() => setShowAuthModal(true)}
+                  id="auth-login-btn"
+                  onClick={() => { setShowAuthPanel(v => !v); setShowUserMenu(false); }}
                   style={{
                     padding: '7px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
                     color: '#3182F6', backgroundColor: '#EFF6FF', border: 'none', cursor: 'pointer',
@@ -262,13 +241,14 @@ export default function App() {
         )}
 
         {activeTab === 'history' && (
-          currentUser ? (
+          isAuthenticated ? (
             <JobHistory />
           ) : (
             <div style={{ textAlign: 'center', padding: '60px 0' }}>
               <p style={{ fontSize: '15px', fontWeight: 600, color: '#6B7280', marginBottom: '12px' }}>분석 기록은 로그인 후 확인할 수 있습니다.</p>
               <button
-                onClick={() => setShowAuthModal(true)}
+                id="auth-login-btn"
+                onClick={() => setShowAuthPanel(true)}
                 style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, color: '#fff', backgroundColor: '#3182F6', border: 'none', cursor: 'pointer' }}
               >
                 로그인하기
@@ -278,12 +258,8 @@ export default function App() {
         )}
       </main>
 
-      {showAuthModal && (
-        <AuthModal
-          onClose={() => setShowAuthModal(false)}
-          onLogin={(user) => handleLogin(user)}
-        />
-      )}
+      {showAuthPanel && <AuthPanel onClose={() => setShowAuthPanel(false)} />}
+      {showUserMenu && <UserMenuPanel onClose={() => setShowUserMenu(false)} />}
     </div>
   );
 }
