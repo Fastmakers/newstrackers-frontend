@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Upload, FileText, Loader2, CheckCircle2 } from 'lucide-react';
-import { createJob, streamJob, StreamEvent } from '../api';
+import { createJob, getJob, getReport } from '../api';
 
 interface UploadSectionProps {
   onAnalysisComplete: (data: any) => void;
   onAnalyzingChange?: (isAnalyzing: boolean, cancel?: () => void) => void;
-  /** 진행 중인 job에 재접속할 때 job_id를 넘기면 폼 없이 바로 스트림 시작 */
-  reconnectJobId?: string | null;
 }
 
 const INDUSTRY_OPTIONS = [
@@ -16,14 +14,13 @@ const INDUSTRY_OPTIONS = [
   '건설 부동산', '방산', '제조업',
 ];
 
-// step 1은 POST /jobs 단계에서 완료 (PDF 파싱은 job 생성 시 서버에서 처리)
 const PIPELINE_STEPS = [
-  { step: 1, label: 'PDF 파싱' },
-  { step: 2, label: '자소서 AI 분석' },
-  { step: 3, label: '검색 쿼리 최적화' },
-  { step: 4, label: '관련 뉴스 하이브리드 검색' },
-  { step: 5, label: 'SWOT + 산업 연관성 분석' },
-  { step: 6, label: '최종 면접 리포트 생성' },
+  { step: 1, label: 'PDF 파싱', pct: 10 },
+  { step: 2, label: '자소서 AI 분석', pct: 25 },
+  { step: 3, label: '검색 쿼리 최적화', pct: 30 },
+  { step: 4, label: '관련 뉴스 하이브리드 검색', pct: 55 },
+  { step: 5, label: 'SWOT + 산업 연관성 분석', pct: 80 },
+  { step: 6, label: '최종 면접 리포트 생성', pct: 100 },
 ];
 
 const card: React.CSSProperties = {
@@ -33,73 +30,54 @@ const card: React.CSSProperties = {
   boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
 };
 
-export function UploadSection({ onAnalysisComplete, onAnalyzingChange, reconnectJobId }: UploadSectionProps) {
+export function UploadSection({ onAnalysisComplete, onAnalyzingChange }: UploadSectionProps) {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState({ targetIndustry: '', targetCompany: '', targetPosition: '', careerLevel: '신입' });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [activeSteps, setActiveSteps] = useState<Set<number>>(new Set());
-  const [activeLabel, setActiveLabel] = useState('');
-  const [activeDetail, setActiveDetail] = useState('');
-  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [progressPct, setProgressPct] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const completedStepsRef = useRef<Set<number>>(new Set());
-  const activeStepsRef = useRef<Set<number>>(new Set());
-  const abortRef = useRef<ReturnType<typeof streamJob> | null>(null);
-
-  // 재접속 요청이 들어오면 바로 스트림 시작
-  useEffect(() => {
-    if (reconnectJobId) startStream(reconnectJobId);
-  }, [reconnectJobId]);
+  const pollRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!isAnalyzing) {
-      setActiveSteps(new Set()); activeStepsRef.current = new Set();
-      setActiveLabel(''); setActiveDetail('');
-      setCompletedSteps(new Set()); completedStepsRef.current = new Set();
-      setElapsedSeconds(0); setProgressPct(0);
+      setElapsedSeconds(0);
+      setProgressPct(0);
       return;
     }
     const timer = window.setInterval(() => setElapsedSeconds((p) => p + 1), 1000);
     return () => window.clearInterval(timer);
   }, [isAnalyzing]);
 
-  const startStream = (jobId: string) => {
-    setIsAnalyzing(true);
-    const cancel = () => abortRef.current?.abort();
-    onAnalyzingChange?.(true, cancel);
+  const stopPolling = () => {
+    if (pollRef.current !== null) {
+      window.clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  };
 
-    abortRef.current = streamJob(
-      jobId,
-      (event: StreamEvent) => {
-        if (event.type === 'progress') {
-          const { step, status, label, detail, progress_pct } = event;
-          setActiveLabel(label);
-          setActiveDetail(detail ?? '');
-          if (progress_pct != null) setProgressPct(progress_pct);
+  const startPolling = (jobId: string) => {
+    pollRef.current = window.setInterval(async () => {
+      try {
+        const job = await getJob(jobId);
+        setProgressPct(job.progress_pct);
 
-          if (status === 'done') {
-            activeStepsRef.current = new Set([...activeStepsRef.current].filter((s) => s !== step));
-            setActiveSteps(new Set(activeStepsRef.current));
-            const next = new Set(completedStepsRef.current).add(step);
-            completedStepsRef.current = next;
-            setCompletedSteps(new Set(next));
-          } else {
-            activeStepsRef.current = new Set([...activeStepsRef.current, step]);
-            setActiveSteps(new Set(activeStepsRef.current));
-          }
-        } else if (event.type === 'result') {
-          onAnalysisComplete({ ...event.data, apiResponse: event.data });
-        } else if (event.type === 'error') {
-          setSubmitError(event.message);
+        if (job.status === 'completed' && job.report_id) {
+          stopPolling();
+          const report = await getReport(job.report_id);
+          setIsAnalyzing(false);
+          onAnalyzingChange?.(false);
+          onAnalysisComplete({ ...report, apiResponse: report });
+        } else if (job.status === 'failed') {
+          stopPolling();
+          setIsAnalyzing(false);
+          onAnalyzingChange?.(false);
+          setSubmitError(job.error_msg || '분석 중 오류가 발생했습니다.');
         }
-      },
-      () => {
-        setIsAnalyzing(false);
-        onAnalyzingChange?.(false);
-      },
-    );
+      } catch {
+        // 일시적 네트워크 오류는 무시하고 계속 폴링
+      }
+    }, 3000);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,49 +97,19 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange, reconnect
     if (formData.targetPosition.trim()) payload.append('job_title', formData.targetPosition.trim());
     payload.append('career_level', formData.careerLevel);
 
+    const cancel = () => {
+      stopPolling();
+      setIsAnalyzing(false);
+      onAnalyzingChange?.(false);
+    };
+
     try {
-      // Step 1: job 생성 (서버에서 PDF 파싱도 여기서 완료됨)
       setIsAnalyzing(true);
-      onAnalyzingChange?.(true, () => abortRef.current?.abort());
-
-      const { job_id } = await createJob(payload);
-
-      // step 1 완료 표시
-      completedStepsRef.current = new Set([1]);
-      setCompletedSteps(new Set([1]));
+      onAnalyzingChange?.(true, cancel);
       setProgressPct(10);
 
-      // Step 2-6: SSE 스트림 시작
-      abortRef.current = streamJob(
-        job_id,
-        (event: StreamEvent) => {
-          if (event.type === 'progress') {
-            const { step, status, label, detail, progress_pct } = event;
-            setActiveLabel(label);
-            setActiveDetail(detail ?? '');
-            if (progress_pct != null) setProgressPct(progress_pct);
-
-            if (status === 'done') {
-              activeStepsRef.current = new Set([...activeStepsRef.current].filter((s) => s !== step));
-              setActiveSteps(new Set(activeStepsRef.current));
-              const next = new Set(completedStepsRef.current).add(step);
-              completedStepsRef.current = next;
-              setCompletedSteps(new Set(next));
-            } else {
-              activeStepsRef.current = new Set([...activeStepsRef.current, step]);
-              setActiveSteps(new Set(activeStepsRef.current));
-            }
-          } else if (event.type === 'result') {
-            onAnalysisComplete({ ...event.data, apiResponse: event.data });
-          } else if (event.type === 'error') {
-            setSubmitError(event.message);
-          }
-        },
-        () => {
-          setIsAnalyzing(false);
-          onAnalyzingChange?.(false);
-        },
-      );
+      const { job_id } = await createJob(payload);
+      startPolling(job_id);
     } catch (error) {
       setIsAnalyzing(false);
       onAnalyzingChange?.(false);
@@ -173,6 +121,7 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange, reconnect
   // 분석 진행 중 화면
   // ---------------------------------------------------------------------------
   if (isAnalyzing) {
+    const currentStep = PIPELINE_STEPS.findLast((s) => progressPct >= s.pct) ?? PIPELINE_STEPS[0];
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 0' }}>
         <div style={{ ...card, width: '100%', maxWidth: '440px' }}>
@@ -184,29 +133,20 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange, reconnect
             </div>
           </div>
 
-          {/* progress bar */}
           <div style={{ marginBottom: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              {activeLabel && <span style={{ fontSize: '13px', fontWeight: 600, color: '#1D4ED8' }}>{activeLabel}</span>}
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#3182F6', marginLeft: 'auto' }}>{progressPct}%</span>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#1D4ED8' }}>{currentStep.label}</span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#3182F6' }}>{progressPct}%</span>
             </div>
             <div style={{ height: '6px', backgroundColor: '#E2E8F0', borderRadius: '100px', overflow: 'hidden' }}>
-              <div style={{
-                height: '100%',
-                width: `${progressPct}%`,
-                backgroundColor: '#3182F6',
-                borderRadius: '100px',
-                transition: 'width 0.6s ease',
-              }} />
+              <div style={{ height: '100%', width: `${progressPct}%`, backgroundColor: '#3182F6', borderRadius: '100px', transition: 'width 0.6s ease' }} />
             </div>
-            {activeDetail && <p style={{ fontSize: '12px', color: '#3B82F6', marginTop: '4px' }}>{activeDetail}</p>}
           </div>
 
-          {/* step list */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {PIPELINE_STEPS.map(({ step, label }) => {
-              const isDone = completedSteps.has(step);
-              const isActive = activeSteps.has(step) && !isDone;
+            {PIPELINE_STEPS.map(({ step, label, pct }) => {
+              const isDone = progressPct >= pct;
+              const isActive = progressPct >= (PIPELINE_STEPS[step - 2]?.pct ?? 0) && !isDone;
               return (
                 <div key={step} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   {isDone ? (
@@ -218,12 +158,7 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange, reconnect
                       <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#E2E8F0', display: 'block' }} />
                     </span>
                   )}
-                  <span style={{
-                    fontSize: '13px',
-                    color: isDone ? '#CBD5E1' : isActive ? '#191F28' : '#CBD5E1',
-                    fontWeight: isActive ? 600 : 400,
-                    textDecoration: isDone ? 'line-through' : 'none',
-                  }}>
+                  <span style={{ fontSize: '13px', color: isDone ? '#CBD5E1' : isActive ? '#191F28' : '#CBD5E1', fontWeight: isActive ? 600 : 400, textDecoration: isDone ? 'line-through' : 'none' }}>
                     {label}
                   </span>
                 </div>
@@ -247,7 +182,6 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange, reconnect
   // ---------------------------------------------------------------------------
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-      {/* Upload Card */}
       <div style={card}>
         <p style={{ fontWeight: 700, fontSize: '16px', color: '#191F28', marginBottom: '20px' }}>자소서 PDF 업로드</p>
         <input type="file" accept=".pdf" onChange={handleFileUpload} className="hidden" id="file-upload" />
@@ -274,7 +208,6 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange, reconnect
             </>
           )}
         </label>
-
         <div style={{ marginTop: '16px', padding: '12px 16px', backgroundColor: '#F0F9FF', borderRadius: '10px' }}>
           <p style={{ fontSize: '13px', color: '#0369A1', lineHeight: 1.6 }}>
             💡 자소서 PDF를 업로드하면 AI가 자동으로 분석하여 맞춤형 면접 전략을 제안합니다.
@@ -282,7 +215,6 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange, reconnect
         </div>
       </div>
 
-      {/* Form Card */}
       <div style={card}>
         <p style={{ fontWeight: 700, fontSize: '16px', color: '#191F28', marginBottom: '20px' }}>지원 정보 입력</p>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>

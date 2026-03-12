@@ -29,7 +29,6 @@ export default function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(getSavedUser);
-  const [reconnectJobId, setReconnectJobId] = useState<string | null>(null);
   const reportExportRef = useRef<HTMLDivElement | null>(null);
   const cancelAnalysisRef = useRef<(() => void) | null>(null);
 
@@ -62,14 +61,6 @@ export default function App() {
     localStorage.removeItem('user_info');
     setCurrentUser(null);
   };
-
-  const handleReconnect = (jobId: string) => {
-    setAnalysisData(null);
-    setReconnectJobId(jobId);
-    setActiveTab('upload');
-  };
-
-  const handleReconnectDone = () => setReconnectJobId(null);
 
   const api = analysisData?.apiResponse ?? analysisData ?? {};
   const profile = api.resume_profile ?? {};
@@ -265,16 +256,14 @@ export default function App() {
               onAnalyzingChange={(analyzing, cancel) => {
                 setIsAnalyzing(analyzing);
                 cancelAnalysisRef.current = cancel ?? null;
-                if (!analyzing) handleReconnectDone();
               }}
-              reconnectJobId={reconnectJobId}
             />
           )
         )}
 
         {activeTab === 'history' && (
           currentUser ? (
-            <JobHistory onReconnect={handleReconnect} />
+            <JobHistory />
           ) : (
             <div style={{ textAlign: 'center', padding: '60px 0' }}>
               <p style={{ fontSize: '15px', fontWeight: 600, color: '#6B7280', marginBottom: '12px' }}>분석 기록은 로그인 후 확인할 수 있습니다.</p>

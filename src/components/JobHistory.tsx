@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Loader2, CheckCircle2, XCircle, Clock, ChevronRight, RefreshCw, ArrowLeft } from 'lucide-react';
+import { Loader2, Clock, ChevronRight, RefreshCw, ArrowLeft } from 'lucide-react';
 import { getJobs, getReport, Job, Report } from '../api';
 import { ResumeReview } from './ResumeReview';
 import { IndustryAnalysis } from './IndustryAnalysis';
 import { SwotAnalysis } from './SwotAnalysis';
 import { FinalReportSummary } from './FinalReportSummary';
 
-interface JobHistoryProps {
-  onReconnect: (jobId: string) => void;
-}
+interface JobHistoryProps {}
 
 const card: React.CSSProperties = {
   backgroundColor: '#ffffff',
@@ -36,7 +34,7 @@ function toKST(iso: string) {
   return new Date(iso).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-export function JobHistory({ onReconnect }: JobHistoryProps) {
+export function JobHistory({}: JobHistoryProps) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingReport, setLoadingReport] = useState<string | null>(null);
@@ -166,14 +164,12 @@ export function JobHistory({ onReconnect }: JobHistoryProps) {
               {/* 진행 중일 때 progress bar */}
               {job.status === 'running' && (
                 <div style={{ marginTop: '10px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '12px', color: '#3B82F6', fontWeight: 500 }}>{job.step_label ?? '분석 중...'}</span>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
                     <span style={{ fontSize: '12px', color: '#3B82F6', fontWeight: 600 }}>{job.progress_pct}%</span>
                   </div>
                   <div style={{ height: '4px', backgroundColor: '#E2E8F0', borderRadius: '100px', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${job.progress_pct}%`, backgroundColor: '#3182F6', borderRadius: '100px', transition: 'width 0.5s' }} />
                   </div>
-                  {job.step_detail && <p style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '4px' }}>{job.step_detail}</p>}
                 </div>
               )}
 
@@ -203,19 +199,10 @@ export function JobHistory({ onReconnect }: JobHistoryProps) {
                 </button>
               )}
               {job.status === 'running' && (
-                <button
-                  onClick={() => onReconnect(job.job_id)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '4px',
-                    padding: '8px 14px', borderRadius: '10px',
-                    fontSize: '13px', fontWeight: 600,
-                    color: '#1D4ED8', backgroundColor: '#DBEAFE',
-                    border: 'none', cursor: 'pointer',
-                  }}
-                >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#1D4ED8', fontWeight: 600 }}>
                   <Loader2 style={{ width: '14px', height: '14px' }} className="animate-spin" />
-                  진행상황 보기
-                </button>
+                  분석 중 {job.progress_pct}%
+                </span>
               )}
             </div>
           </div>
