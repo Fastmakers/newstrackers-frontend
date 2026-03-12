@@ -5,6 +5,7 @@ import { createJob, getJob, getReport } from '../api';
 interface UploadSectionProps {
   onAnalysisComplete: (data: any) => void;
   onAnalyzingChange?: (isAnalyzing: boolean, cancel?: () => void) => void;
+  reconnectJobId?: string | null;
 }
 
 const INDUSTRY_OPTIONS = [
@@ -30,7 +31,7 @@ const card: React.CSSProperties = {
   boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
 };
 
-export function UploadSection({ onAnalysisComplete, onAnalyzingChange }: UploadSectionProps) {
+export function UploadSection({ onAnalysisComplete, onAnalyzingChange, reconnectJobId }: UploadSectionProps) {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState({ targetIndustry: '', targetCompany: '', targetPosition: '', careerLevel: '신입' });
@@ -38,6 +39,20 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange }: UploadS
   const [progressPct, setProgressPct] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const pollRef = useRef<number | null>(null);
+
+  // 기록 탭에서 "진행상황 보기" 클릭 시 진행 중인 job에 재접속
+  useEffect(() => {
+    if (reconnectJobId) {
+      const cancel = () => {
+        stopPolling();
+        setIsAnalyzing(false);
+        onAnalyzingChange?.(false);
+      };
+      setIsAnalyzing(true);
+      onAnalyzingChange?.(true, cancel);
+      startPolling(reconnectJobId);
+    }
+  }, [reconnectJobId]);
 
   useEffect(() => {
     if (!isAnalyzing) {

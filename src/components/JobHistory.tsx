@@ -6,7 +6,9 @@ import { IndustryAnalysis } from './IndustryAnalysis';
 import { SwotAnalysis } from './SwotAnalysis';
 import { FinalReportSummary } from './FinalReportSummary';
 
-interface JobHistoryProps {}
+interface JobHistoryProps {
+  onReconnect: (jobId: string) => void;
+}
 
 const card: React.CSSProperties = {
   backgroundColor: '#ffffff',
@@ -34,7 +36,7 @@ function toKST(iso: string) {
   return new Date(iso).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-export function JobHistory({}: JobHistoryProps) {
+export function JobHistory({ onReconnect }: JobHistoryProps) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingReport, setLoadingReport] = useState<string | null>(null);
@@ -199,10 +201,19 @@ export function JobHistory({}: JobHistoryProps) {
                 </button>
               )}
               {job.status === 'running' && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#1D4ED8', fontWeight: 600 }}>
+                <button
+                  onClick={() => onReconnect(job.job_id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '4px',
+                    padding: '8px 14px', borderRadius: '10px',
+                    fontSize: '13px', fontWeight: 600,
+                    color: '#1D4ED8', backgroundColor: '#DBEAFE',
+                    border: 'none', cursor: 'pointer',
+                  }}
+                >
                   <Loader2 style={{ width: '14px', height: '14px' }} className="animate-spin" />
-                  분석 중 {job.progress_pct}%
-                </span>
+                  진행상황 보기
+                </button>
               )}
             </div>
           </div>
