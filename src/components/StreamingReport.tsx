@@ -54,18 +54,18 @@ function ProgressBar({ pct, label, elapsed }: { pct: number; label: string; elap
   return (
     <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', padding: '20px 24px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '20px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-        <Loader2 style={{ width: '18px', height: '18px', color: '#3182F6', flexShrink: 0 }} className="animate-spin" />
+        <Loader2 style={{ width: '18px', height: '18px', color: '#FF7A00', flexShrink: 0 }} className="animate-spin" />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontWeight: 700, fontSize: '14px', color: '#191F28', margin: 0 }}>AI 분석 리포트 생성 중</p>
-          <p style={{ fontSize: '12px', color: '#8B95A1', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <p style={{ fontWeight: 700, fontSize: '14px', color: '#2B2E34', margin: 0 }}>AI 분석 리포트 생성 중</p>
+          <p style={{ fontSize: '12px', color: '#616161', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {label || currentStep.label}
           </p>
         </div>
-        <span style={{ fontSize: '13px', fontWeight: 700, color: '#3182F6', flexShrink: 0 }}>{pct}% · {elapsed}초</span>
+        <span style={{ fontSize: '13px', fontWeight: 700, color: '#FF7A00', flexShrink: 0 }}>{pct}% · {elapsed}초</span>
       </div>
 
       <div style={{ height: '5px', backgroundColor: '#E2E8F0', borderRadius: '100px', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct}%`, backgroundColor: '#3182F6', borderRadius: '100px', transition: 'width 0.6s ease' }} />
+        <div style={{ height: '100%', width: `${pct}%`, backgroundColor: '#FF7A00', borderRadius: '100px', transition: 'width 0.6s ease' }} />
       </div>
 
       <div style={{ display: 'flex', gap: '12px', marginTop: '14px', flexWrap: 'wrap' }}>
@@ -77,9 +77,9 @@ function ProgressBar({ pct, label, elapsed }: { pct: number; label: string; elap
               {done
                 ? <CheckCircle2 style={{ width: '13px', height: '13px', color: '#22C55E' }} />
                 : active
-                  ? <Loader2 style={{ width: '13px', height: '13px', color: '#3182F6' }} className="animate-spin" />
+                  ? <Loader2 style={{ width: '13px', height: '13px', color: '#FF7A00' }} className="animate-spin" />
                   : <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#E2E8F0', display: 'inline-block' }} />}
-              <span style={{ fontSize: '11px', color: done ? '#CBD5E1' : active ? '#191F28' : '#CBD5E1', fontWeight: active ? 600 : 400, textDecoration: done ? 'line-through' : 'none' }}>
+              <span style={{ fontSize: '11px', color: done ? '#CBD5E1' : active ? '#2B2E34' : '#CBD5E1', fontWeight: active ? 600 : 400, textDecoration: done ? 'line-through' : 'none' }}>
                 {sLabel}
               </span>
             </div>
@@ -94,24 +94,24 @@ function NewsCard({ news }: { news: any }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px 16px', backgroundColor: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: '13px', fontWeight: 600, color: '#191F28', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <p style={{ fontSize: '13px', fontWeight: 600, color: '#2B2E34', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {news.title}
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {news.job_category && (
-            <span style={{ fontSize: '11px', color: '#3182F6', backgroundColor: '#EFF6FF', padding: '2px 8px', borderRadius: '100px', fontWeight: 500 }}>
+            <span style={{ fontSize: '11px', color: '#FF7A00', backgroundColor: '#FFF3E8', padding: '2px 8px', borderRadius: '100px', fontWeight: 500 }}>
               {news.job_category}
             </span>
           )}
           {news.published_at && (
-            <span style={{ fontSize: '11px', color: '#94A3B8' }}>
+            <span style={{ fontSize: '11px', color: '#616161' }}>
               {new Date(news.published_at).toLocaleDateString('ko-KR')}
             </span>
           )}
         </div>
       </div>
       {news.url && (
-        <a href={news.url} target="_blank" rel="noreferrer" style={{ color: '#94A3B8', flexShrink: 0 }}>
+        <a href={news.url} target="_blank" rel="noreferrer" style={{ color: '#616161', flexShrink: 0 }}>
           <ExternalLink style={{ width: '14px', height: '14px' }} />
         </a>
       )}
@@ -123,8 +123,8 @@ function MatchedNewsSection({ news }: { news: any[] }) {
   return (
     <div style={{ ...fadeIn, backgroundColor: '#ffffff', borderRadius: '14px', padding: '24px', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <p style={{ fontWeight: 700, fontSize: '16px', color: '#191F28', margin: 0 }}>관련 뉴스</p>
-        <span style={{ fontSize: '12px', fontWeight: 600, color: '#3182F6', backgroundColor: '#EFF6FF', padding: '3px 10px', borderRadius: '100px' }}>{news.length}건 매칭</span>
+        <p style={{ fontWeight: 700, fontSize: '16px', color: '#2B2E34', margin: 0 }}>관련 뉴스</p>
+        <span style={{ fontSize: '12px', fontWeight: 600, color: '#FF7A00', backgroundColor: '#FFF3E8', padding: '3px 10px', borderRadius: '100px' }}>{news.length}건 매칭</span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {news.slice(0, 8).map((item: any, i: number) => (
@@ -140,17 +140,17 @@ function StreamingFinalReport({ text }: { text: string }) {
   return (
     <div style={{ ...fadeIn, backgroundColor: '#ffffff', borderRadius: '14px', padding: '28px', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
-        <p style={{ fontWeight: 700, fontSize: '17px', color: '#191F28', margin: 0 }}>면접 준비 리포트</p>
+        <p style={{ fontWeight: 700, fontSize: '17px', color: '#2B2E34', margin: 0 }}>면접 준비 리포트</p>
         {hasContent && (
-          <span style={{ display: 'inline-block', width: '2px', height: '18px', backgroundColor: '#3182F6', animation: 'blink 1s step-end infinite' }} />
+          <span style={{ display: 'inline-block', width: '2px', height: '18px', backgroundColor: '#FF7A00', animation: 'blink 1s step-end infinite' }} />
         )}
       </div>
       {hasContent ? (
-        <div style={{ fontSize: '14px', color: '#374151', lineHeight: 1.8 }}>
+        <div style={{ fontSize: '14px', color: '#2B2E34', lineHeight: 1.8 }}>
           {renderMarkdown(text)}
         </div>
       ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#94A3B8' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#616161' }}>
           <Loader2 style={{ width: '16px', height: '16px' }} className="animate-spin" />
           <span style={{ fontSize: '13px' }}>리포트 생성 중...</span>
         </div>

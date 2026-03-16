@@ -8,6 +8,7 @@ import { SwotAnalysis } from './components/SwotAnalysis';
 import { FinalReportSummary } from './components/FinalReportSummary';
 import { AuthPanel, UserMenuPanel } from './components/AuthModal';
 import { JobHistory } from './components/JobHistory';
+import type { StreamingState } from './components/StreamingReport';
 import { Download, User, LogOut, History, ArrowLeft } from 'lucide-react';
 import { useAuthStore } from './store/authStore';
 
@@ -19,10 +20,12 @@ export default function App() {
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [streamingState, setStreamingState] = useState<StreamingState | null>(null);
   const [showAuthPanel, setShowAuthPanel] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const reportExportRef = useRef<HTMLDivElement | null>(null);
   const cancelAnalysisRef = useRef<(() => void) | null>(null);
+  const activeStreamSidRef = useRef<string | null>(null);
 
   const handleAnalysisComplete = (data: any) => {
     setAnalysisData(data);
@@ -30,9 +33,6 @@ export default function App() {
 
   const handleTabClick = (tab: Tab) => {
     if (tab === activeTab) return;
-    if (isAnalyzing) {
-      cancelAnalysisRef.current?.();
-    }
     setActiveTab(tab);
   };
 
@@ -119,8 +119,8 @@ export default function App() {
         <div style={{ maxWidth: '980px', margin: '0 auto', padding: '0 28px' }}>
           <div style={{ paddingTop: '20px', paddingBottom: '0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div>
-              <h1 style={{ fontWeight: 800, fontSize: '20px', color: '#111827', margin: 0, letterSpacing: '-0.3px' }}>AI 취업 전략 리포트</h1>
-              <p style={{ fontSize: '13px', color: '#9CA3AF', marginTop: '4px' }}>자소서 기반 맞춤형 면접 전략을 분석합니다</p>
+              <h1 style={{ fontWeight: 800, fontSize: '20px', color: '#2B2E34', margin: 0, letterSpacing: '-0.3px' }}>AI 취업 전략 리포트</h1>
+              <p style={{ fontSize: '13px', color: '#616161', marginTop: '4px' }}>자소서 기반 맞춤형 면접 전략을 분석합니다</p>
             </div>
 
             <div style={{ paddingTop: '4px' }}>
@@ -131,12 +131,12 @@ export default function App() {
                     onClick={() => { setShowUserMenu(v => !v); setShowAuthPanel(false); }}
                     style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                   >
-                    <User style={{ width: '15px', height: '15px', color: '#6B7280' }} />
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>{user.nickname}</span>
+                    <User style={{ width: '15px', height: '15px', color: '#616161' }} />
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#2B2E34' }}>{user.nickname}</span>
                   </button>
                   <button
                     onClick={() => { logout(); setShowUserMenu(false); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#9CA3AF', background: 'none', border: 'none', cursor: 'pointer' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#616161', background: 'none', border: 'none', cursor: 'pointer' }}
                   >
                     <LogOut style={{ width: '13px', height: '13px' }} />로그아웃
                   </button>
@@ -147,7 +147,7 @@ export default function App() {
                   onClick={() => { setShowAuthPanel(v => !v); setShowUserMenu(false); }}
                   style={{
                     padding: '7px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
-                    color: '#3182F6', backgroundColor: '#EFF6FF', border: 'none', cursor: 'pointer',
+                    color: '#FF7A00', backgroundColor: '#FFF3E8', border: 'none', cursor: 'pointer',
                   }}
                 >
                   로그인
@@ -163,9 +163,9 @@ export default function App() {
               return (
                 <button key={id} onClick={() => handleTabClick(id)} style={{
                   padding: '10px 4px', marginRight: '28px', fontSize: '14px', fontWeight: isActive ? 700 : 400,
-                  color: isActive ? '#111827' : '#9CA3AF',
+                  color: isActive ? '#2B2E34' : '#616161',
                   background: 'none', border: 'none',
-                  borderBottom: isActive ? '2px solid #2563EB' : '2px solid transparent',
+                  borderBottom: isActive ? '2px solid #FF7A00' : '2px solid transparent',
                   cursor: 'pointer', transition: 'all 0.15s',
                   display: 'flex', alignItems: 'center', gap: '6px',
                 }}>
@@ -180,8 +180,9 @@ export default function App() {
 
       {/* Main */}
       <main style={{ maxWidth: '980px', margin: '0 auto', padding: '28px 28px 80px' }}>
-        {activeTab === 'upload' && (
-          analysisData ? (
+        {/* 업로드 탭 — 스트리밍 중에도 언마운트되지 않도록 display로 제어 */}
+        <div style={{ display: activeTab === 'upload' ? 'block' : 'none' }}>
+          {analysisData ? (
             /* 분석 완료 결과 뷰 */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {/* 헤더: 새 분석 버튼 + 기업/직무 + 내보내기 */}
@@ -189,7 +190,7 @@ export default function App() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                   <button
                     onClick={() => setAnalysisData(null)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#6B7280', padding: 0 }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#616161', padding: 0 }}
                   >
                     <ArrowLeft style={{ width: '15px', height: '15px' }} />
                     새 분석
@@ -201,8 +202,8 @@ export default function App() {
                         {[{ label: '지원 기업', val: profile.company }, { label: '직무', val: profile.job_title }, { label: '산업', val: profile.industry }]
                           .filter(i => i.val).map(item => (
                             <div key={item.label}>
-                              <p style={{ fontSize: '11px', color: '#9CA3AF', marginBottom: '2px', fontWeight: 500 }}>{item.label}</p>
-                              <p style={{ fontSize: '15px', fontWeight: 700, color: '#111827' }}>{item.val}</p>
+                              <p style={{ fontSize: '11px', color: '#616161', marginBottom: '2px', fontWeight: 500 }}>{item.label}</p>
+                              <p style={{ fontSize: '15px', fontWeight: 700, color: '#2B2E34' }}>{item.val}</p>
                             </div>
                           ))}
                       </div>
@@ -215,7 +216,7 @@ export default function App() {
                     { label: 'JSON', fn: handleExportJson, dis: false },
                   ].map(b => (
                     <button key={b.label} onClick={b.fn} disabled={b.dis}
-                      style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: '#4B5563', backgroundColor: '#F3F4F6', border: 'none', cursor: 'pointer' }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: '#616161', backgroundColor: '#F3F4F6', border: 'none', cursor: 'pointer' }}>
                       <Download style={{ width: '13px', height: '13px' }} />{b.label}
                     </button>
                   ))}
@@ -229,33 +230,52 @@ export default function App() {
               </div>
             </div>
           ) : (
-            /* 업로드 폼 */
+            /* 업로드 폼 / 스트리밍 뷰 */
             <UploadSection
               onAnalysisComplete={handleAnalysisComplete}
               onAnalyzingChange={(analyzing, cancel) => {
                 setIsAnalyzing(analyzing);
                 cancelAnalysisRef.current = cancel ?? null;
+                if (analyzing) setActiveTab('history');
+              }}
+              onStreamingStateChange={(state, sid) => {
+                if (state === null) {
+                  // 현재 표시 중인 분석이 완료됨 → lock 해제
+                  if (activeStreamSidRef.current === sid) {
+                    activeStreamSidRef.current = null;
+                    setStreamingState(null);
+                  }
+                } else if (!activeStreamSidRef.current) {
+                  // 처음 시작하는 분析 → lock
+                  activeStreamSidRef.current = sid;
+                  setStreamingState(state);
+                } else if (activeStreamSidRef.current === sid) {
+                  // 현재 표시 중인 분析의 업데이트
+                  setStreamingState(state);
+                }
+                // 다른 sid → 무시 (와리가리 방지)
               }}
             />
-          )
-        )}
+          )}
+        </div>
 
-        {activeTab === 'history' && (
-          isAuthenticated ? (
-            <JobHistory />
+        {/* 분석기록 탭 */}
+        <div style={{ display: activeTab === 'history' ? 'block' : 'none' }}>
+          {isAuthenticated || streamingState ? (
+            <JobHistory streamingState={streamingState} />
           ) : (
             <div style={{ textAlign: 'center', padding: '60px 0' }}>
-              <p style={{ fontSize: '15px', fontWeight: 600, color: '#6B7280', marginBottom: '12px' }}>분석 기록은 로그인 후 확인할 수 있습니다.</p>
+              <p style={{ fontSize: '15px', fontWeight: 600, color: '#616161', marginBottom: '12px' }}>분석 기록은 로그인 후 확인할 수 있습니다.</p>
               <button
                 id="auth-login-btn"
                 onClick={() => setShowAuthPanel(true)}
-                style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, color: '#fff', backgroundColor: '#3182F6', border: 'none', cursor: 'pointer' }}
+                style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, color: '#fff', backgroundColor: '#FF7A00', border: 'none', cursor: 'pointer' }}
               >
                 로그인하기
               </button>
             </div>
-          )
-        )}
+          )}
+        </div>
       </main>
 
       {showAuthPanel && <AuthPanel onClose={() => setShowAuthPanel(false)} />}

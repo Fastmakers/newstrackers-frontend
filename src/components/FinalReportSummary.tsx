@@ -19,14 +19,14 @@ export function FinalReportSummary({ data }: FinalReportSummaryProps) {
   const report = typeof api.final_report === 'string' ? api.final_report : '';
 
   const sections = [
-    { key: '면접 준비 포인트', next: '최종 권고사항', label: '면접 준비 포인트', color: '#2563EB', bg: '#EFF6FF' },
+    { key: '면접 준비 포인트', next: '최종 권고사항', label: '면접 준비 포인트', color: '#FF7A00', bg: '#FFF3E8' },
     { key: '최종 권고사항', next: undefined, label: '최종 권고사항', color: '#7C3AED', bg: '#F5F3FF' },
   ].map(s => ({ ...s, content: extractSection(report, s.key, s.next) })).filter(s => s.content);
 
   if (!sections.length) {
     return (
       <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '28px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-        <p style={{ fontSize: '14px', color: '#8B95A1' }}>표시할 최종 리포트 데이터가 없습니다.</p>
+        <p style={{ fontSize: '14px', color: '#616161' }}>표시할 최종 리포트 데이터가 없습니다.</p>
       </div>
     );
   }
@@ -34,8 +34,8 @@ export function FinalReportSummary({ data }: FinalReportSummaryProps) {
   return (
     <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '28px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
       <div style={{ marginBottom: '24px' }}>
-        <p style={{ fontWeight: 700, fontSize: '17px', color: '#191F28' }}>면접 준비 &amp; 최종 권고</p>
-        <p style={{ fontSize: '14px', color: '#8B95A1', marginTop: '3px' }}>AI 분석 기반 맞춤형 전략</p>
+        <p style={{ fontWeight: 700, fontSize: '17px', color: '#2B2E34' }}>면접 준비 &amp; 최종 권고</p>
+        <p style={{ fontSize: '14px', color: '#616161', marginTop: '3px' }}>AI 분석 기반 맞춤형 전략</p>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -43,11 +43,11 @@ export function FinalReportSummary({ data }: FinalReportSummaryProps) {
           <div key={i}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
               <span style={{ display: 'block', width: '4px', height: '18px', borderRadius: '2px', backgroundColor: sec.color, flexShrink: 0 }} />
-              <span style={{ fontSize: '14px', fontWeight: 700, color: '#191F28' }}>{sec.label}</span>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: '#2B2E34' }}>{sec.label}</span>
               <span style={{ fontSize: '11px', fontWeight: 600, color: sec.color, backgroundColor: sec.bg, padding: '2px 10px', borderRadius: '100px' }}>AI 추천</span>
             </div>
             <div style={{ paddingLeft: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {renderMarkdown(sec.content, { baseSize: 15, baseColor: '#374151' })}
+              {renderMarkdown(sec.content, { baseSize: 15, baseColor: '#2B2E34' })}
             </div>
           </div>
         ))}

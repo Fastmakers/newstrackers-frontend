@@ -5,6 +5,8 @@ import { ResumeReview } from './ResumeReview';
 import { IndustryAnalysis } from './IndustryAnalysis';
 import { SwotAnalysis } from './SwotAnalysis';
 import { FinalReportSummary } from './FinalReportSummary';
+import { StreamingReport } from './StreamingReport';
+import type { StreamingState } from './StreamingReport';
 
 const PIPELINE_STEPS = [
   { step: 1, label: 'PDF 파싱', pct: 10 },
@@ -25,7 +27,7 @@ const card: React.CSSProperties = {
 function StatusBadge({ status, progress }: { status: Job['status']; progress: number }) {
   const styles: Record<Job['status'], { bg: string; color: string; label: string }> = {
     pending:   { bg: '#FEF9C3', color: '#854D0E', label: '대기 중' },
-    running:   { bg: '#DBEAFE', color: '#1D4ED8', label: `분석 중 ${progress}%` },
+    running:   { bg: '#FFE4C4', color: '#E56E00', label: `분석 중 ${progress}%` },
     completed: { bg: '#DCFCE7', color: '#15803D', label: '완료' },
     failed:    { bg: '#FEE2E2', color: '#B91C1C', label: '실패' },
   };
@@ -47,7 +49,7 @@ function DetailHeader({ onBack, job, rightSlot }: { onBack: () => void; job: Job
       <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
         <button
           onClick={onBack}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#6B7280', padding: 0 }}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#616161', padding: 0 }}
         >
           <ArrowLeft style={{ width: '15px', height: '15px' }} />
           분석 기록
@@ -61,8 +63,8 @@ function DetailHeader({ onBack, job, rightSlot }: { onBack: () => void; job: Job
             { label: '지원 유형', val: job.career_level },
           ].filter(i => i.val).map(item => (
             <div key={item.label}>
-              <p style={{ fontSize: '11px', color: '#9CA3AF', marginBottom: '1px', fontWeight: 500 }}>{item.label}</p>
-              <p style={{ fontSize: '14px', fontWeight: 700, color: '#111827' }}>{item.val}</p>
+              <p style={{ fontSize: '11px', color: '#616161', marginBottom: '1px', fontWeight: 500 }}>{item.label}</p>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: '#2B2E34' }}>{item.val}</p>
             </div>
           ))}
         </div>
@@ -72,7 +74,10 @@ function DetailHeader({ onBack, job, rightSlot }: { onBack: () => void; job: Job
   );
 }
 
-export function JobHistory() {
+type HistoryTab = 'streaming' | 'list';
+
+export function JobHistory({ streamingState }: { streamingState?: StreamingState | null }) {
+  const [activeSubTab, setActiveSubTab] = useState<HistoryTab>('list');
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingReport, setLoadingReport] = useState<string | null>(null);
@@ -80,6 +85,15 @@ export function JobHistory() {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [progressJob, setProgressJob] = useState<Job | null>(null);
   const progressPollRef = useRef<number | null>(null);
+
+  // 스트리밍 시작 시 스트리밍 탭으로 자동 전환, 종료 시 목록 탭으로 복귀
+  useEffect(() => {
+    if (streamingState) {
+      setActiveSubTab('streaming');
+    } else {
+      setActiveSubTab('list');
+    }
+  }, [!!streamingState]);
 
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -160,68 +174,116 @@ export function JobHistory() {
     setSelectedReport(null);
   };
 
-  // 리포트 상세 뷰
-  if (selectedReport && selectedJob) {
-    const data = { ...selectedReport, apiResponse: selectedReport };
+  // 서브탭 바 (스트리밍 진행 중일 때만 표시)
+  const subTabBar = streamingState ? (
+    <div style={{ display: 'flex', backgroundColor: '#ffffff', borderRadius: '12px', padding: '4px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '16px', gap: '4px' }}>
+      <button
+        onClick={() => setActiveSubTab('streaming')}
+        style={{
+          flex: 1, padding: '9px 16px', borderRadius: '9px', fontSize: '13px', fontWeight: activeSubTab === 'streaming' ? 700 : 500,
+          color: activeSubTab === 'streaming' ? '#ffffff' : '#616161',
+          backgroundColor: activeSubTab === 'streaming' ? '#FF7A00' : 'transparent',
+          border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'all 0.15s',
+        }}
+      >
+        <Loader2 style={{ width: '13px', height: '13px' }} className="animate-spin" />
+        분석 중
+        {streamingState.resumeProfile?.company && (
+          <span style={{ fontWeight: 400, opacity: 0.85 }}>· {streamingState.resumeProfile.company}</span>
+        )}
+      </button>
+      <button
+        onClick={() => setActiveSubTab('list')}
+        style={{
+          flex: 1, padding: '9px 16px', borderRadius: '9px', fontSize: '13px', fontWeight: activeSubTab === 'list' ? 700 : 500,
+          color: activeSubTab === 'list' ? '#2B2E34' : '#616161',
+          backgroundColor: activeSubTab === 'list' ? '#F3F4F6' : 'transparent',
+          border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+        }}
+      >
+        분석 기록
+      </button>
+    </div>
+  ) : null;
+
+  // 스트리밍 탭 선택된 경우
+  if (activeSubTab === 'streaming' && streamingState) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <DetailHeader onBack={handleBack} job={selectedJob} rightSlot={<span style={{ fontSize: '12px', color: '#9CA3AF' }}>{toKST(selectedReport.created_at)}</span>} />
-        <ResumeReview data={data} />
-        <IndustryAnalysis data={data} />
-        <SwotAnalysis data={data} />
-        <FinalReportSummary data={data} />
+      <div>
+        {subTabBar}
+        <StreamingReport {...streamingState} />
       </div>
     );
   }
 
-  // 진행상황 인라인 뷰
+  // 리포트 상세 뷰
+  if (selectedReport && selectedJob) {
+    const data = { ...selectedReport, apiResponse: selectedReport };
+    return (
+      <div>
+        {subTabBar}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <DetailHeader onBack={handleBack} job={selectedJob} rightSlot={<span style={{ fontSize: '12px', color: '#616161' }}>{toKST(selectedReport.created_at)}</span>} />
+          <ResumeReview data={data} />
+          <IndustryAnalysis data={data} />
+          <SwotAnalysis data={data} />
+          <FinalReportSummary data={data} />
+        </div>
+      </div>
+    );
+  }
+
+  // 진행상황 인라인 뷰 (DB job 폴링)
   if (progressJob) {
     const pct = progressJob.progress_pct;
     const currentStep = PIPELINE_STEPS.findLast((s) => pct >= s.pct) ?? PIPELINE_STEPS[0];
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <DetailHeader onBack={handleBackFromProgress} job={progressJob} />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 0' }}>
-          <div style={{ ...card, width: '100%', maxWidth: '440px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-              <Loader2 style={{ width: '20px', height: '20px', color: '#3182F6', flexShrink: 0 }} className="animate-spin" />
-              <div>
-                <p style={{ fontWeight: 700, color: '#191F28', fontSize: '15px' }}>AI 분석 리포트 생성 중</p>
-                <p style={{ fontSize: '12px', color: '#8B95A1', marginTop: '2px' }}>분석이 끝나면 결과 화면으로 이동합니다</p>
+      <div>
+        {subTabBar}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <DetailHeader onBack={handleBackFromProgress} job={progressJob} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 0' }}>
+            <div style={{ ...card, width: '100%', maxWidth: '440px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                <Loader2 style={{ width: '20px', height: '20px', color: '#FF7A00', flexShrink: 0 }} className="animate-spin" />
+                <div>
+                  <p style={{ fontWeight: 700, color: '#2B2E34', fontSize: '15px' }}>AI 분석 리포트 생성 중</p>
+                  <p style={{ fontSize: '12px', color: '#616161', marginTop: '2px' }}>분석이 끝나면 결과 화면으로 이동합니다</p>
+                </div>
               </div>
-            </div>
 
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: '#1D4ED8' }}>{currentStep.label}</span>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#3182F6' }}>{pct}%</span>
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#E56E00' }}>{currentStep.label}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#FF7A00' }}>{pct}%</span>
+                </div>
+                <div style={{ height: '6px', backgroundColor: '#E2E8F0', borderRadius: '100px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${pct}%`, backgroundColor: '#FF7A00', borderRadius: '100px', transition: 'width 0.6s ease' }} />
+                </div>
               </div>
-              <div style={{ height: '6px', backgroundColor: '#E2E8F0', borderRadius: '100px', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${pct}%`, backgroundColor: '#3182F6', borderRadius: '100px', transition: 'width 0.6s ease' }} />
-              </div>
-            </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {PIPELINE_STEPS.map(({ step, label, pct: sPct }) => {
-                const isDone = pct >= sPct;
-                const isActive = pct >= (PIPELINE_STEPS[step - 2]?.pct ?? 0) && !isDone;
-                return (
-                  <div key={step} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    {isDone ? (
-                      <CheckCircle2 style={{ width: '16px', height: '16px', color: '#22C55E', flexShrink: 0 }} />
-                    ) : isActive ? (
-                      <Loader2 style={{ width: '16px', height: '16px', color: '#3182F6', flexShrink: 0 }} className="animate-spin" />
-                    ) : (
-                      <span style={{ width: '16px', height: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#E2E8F0', display: 'block' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {PIPELINE_STEPS.map(({ step, label, pct: sPct }) => {
+                  const isDone = pct >= sPct;
+                  const isActive = pct >= (PIPELINE_STEPS[step - 2]?.pct ?? 0) && !isDone;
+                  return (
+                    <div key={step} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      {isDone ? (
+                        <CheckCircle2 style={{ width: '16px', height: '16px', color: '#22C55E', flexShrink: 0 }} />
+                      ) : isActive ? (
+                        <Loader2 style={{ width: '16px', height: '16px', color: '#FF7A00', flexShrink: 0 }} className="animate-spin" />
+                      ) : (
+                        <span style={{ width: '16px', height: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#E2E8F0', display: 'block' }} />
+                        </span>
+                      )}
+                      <span style={{ fontSize: '13px', color: isDone ? '#CBD5E1' : isActive ? '#2B2E34' : '#CBD5E1', fontWeight: isActive ? 600 : 400, textDecoration: isDone ? 'line-through' : 'none' }}>
+                        {label}
                       </span>
-                    )}
-                    <span style={{ fontSize: '13px', color: isDone ? '#CBD5E1' : isActive ? '#191F28' : '#CBD5E1', fontWeight: isActive ? 600 : 400, textDecoration: isDone ? 'line-through' : 'none' }}>
-                      {label}
-                    </span>
-                  </div>
-                );
-              })}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
@@ -232,110 +294,119 @@ export function JobHistory() {
   // 목록 뷰
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
-        <Loader2 style={{ width: '24px', height: '24px', color: '#3182F6' }} className="animate-spin" />
+      <div>
+        {subTabBar}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
+          <Loader2 style={{ width: '24px', height: '24px', color: '#FF7A00' }} className="animate-spin" />
+        </div>
       </div>
     );
   }
 
   if (jobs.length === 0) {
     return (
-      <div style={{ ...card, textAlign: 'center', padding: '60px 28px', color: '#9CA3AF' }}>
-        <Clock style={{ width: '32px', height: '32px', margin: '0 auto 12px', color: '#CBD5E1' }} />
-        <p style={{ fontSize: '15px', fontWeight: 600, color: '#6B7280' }}>분석 기록이 없습니다</p>
-        <p style={{ fontSize: '13px', marginTop: '6px' }}>자소서를 업로드해 첫 번째 분석을 시작해보세요.</p>
+      <div>
+        {subTabBar}
+        <div style={{ ...card, textAlign: 'center', padding: '60px 28px', color: '#616161' }}>
+          <Clock style={{ width: '32px', height: '32px', margin: '0 auto 12px', color: '#CBD5E1' }} />
+          <p style={{ fontSize: '15px', fontWeight: 600, color: '#616161' }}>분석 기록이 없습니다</p>
+          <p style={{ fontSize: '13px', marginTop: '6px' }}>자소서를 업로드해 첫 번째 분석을 시작해보세요.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-        <p style={{ fontSize: '15px', fontWeight: 700, color: '#111827' }}>분석 기록 ({jobs.length}건)</p>
-        <button onClick={() => load()} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', color: '#6B7280' }}>
-          <RefreshCw style={{ width: '14px', height: '14px' }} />새로고침
-        </button>
-      </div>
+    <div>
+      {subTabBar}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+          <p style={{ fontSize: '15px', fontWeight: 700, color: '#2B2E34' }}>분석 기록 ({jobs.length}건)</p>
+          <button onClick={() => load()} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', color: '#616161' }}>
+            <RefreshCw style={{ width: '14px', height: '14px' }} />새로고침
+          </button>
+        </div>
 
-      {jobs.map((job) => (
-        <div key={job.job_id} style={{ ...card, padding: '18px 24px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
-            {/* 좌측 정보 */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                <StatusBadge status={job.status} progress={job.progress_pct} />
-                <span style={{ fontSize: '12px', color: '#9CA3AF' }}>{toKST(job.created_at)}</span>
-              </div>
-              <p style={{ fontSize: '15px', fontWeight: 700, color: '#111827', marginBottom: '2px' }}>
-                {job.company || '기업 미입력'}
-                {job.job_title && <span style={{ fontWeight: 400, color: '#6B7280', fontSize: '14px' }}> · {job.job_title}</span>}
-              </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {job.industry && <p style={{ fontSize: '12px', color: '#9CA3AF' }}>{job.industry}</p>}
-                {job.career_level && (
-                  <>
-                    {job.industry && <span style={{ fontSize: '12px', color: '#CBD5E1' }}>·</span>}
-                    <span style={{ fontSize: '12px', color: '#9CA3AF' }}>{job.career_level}</span>
-                  </>
+        {jobs.map((job) => (
+          <div key={job.job_id} style={{ ...card, padding: '18px 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+              {/* 좌측 정보 */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                  <StatusBadge status={job.status} progress={job.progress_pct} />
+                  <span style={{ fontSize: '12px', color: '#616161' }}>{toKST(job.created_at)}</span>
+                </div>
+                <p style={{ fontSize: '15px', fontWeight: 700, color: '#2B2E34', marginBottom: '2px' }}>
+                  {job.company || '기업 미입력'}
+                  {job.job_title && <span style={{ fontWeight: 400, color: '#616161', fontSize: '14px' }}> · {job.job_title}</span>}
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {job.industry && <p style={{ fontSize: '12px', color: '#616161' }}>{job.industry}</p>}
+                  {job.career_level && (
+                    <>
+                      {job.industry && <span style={{ fontSize: '12px', color: '#CBD5E1' }}>·</span>}
+                      <span style={{ fontSize: '12px', color: '#616161' }}>{job.career_level}</span>
+                    </>
+                  )}
+                </div>
+
+                {/* 진행 중일 때 progress bar */}
+                {job.status === 'running' && (
+                  <div style={{ marginTop: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '12px', color: '#FF7A00', fontWeight: 600 }}>{job.progress_pct}%</span>
+                    </div>
+                    <div style={{ height: '4px', backgroundColor: '#E2E8F0', borderRadius: '100px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${job.progress_pct}%`, backgroundColor: '#FF7A00', borderRadius: '100px', transition: 'width 0.5s' }} />
+                    </div>
+                  </div>
+                )}
+
+                {job.status === 'failed' && job.error_msg && (
+                  <p style={{ fontSize: '12px', color: '#EF4444', marginTop: '6px' }}>오류: {job.error_msg}</p>
                 )}
               </div>
 
-              {/* 진행 중일 때 progress bar */}
-              {job.status === 'running' && (
-                <div style={{ marginTop: '10px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '12px', color: '#3B82F6', fontWeight: 600 }}>{job.progress_pct}%</span>
-                  </div>
-                  <div style={{ height: '4px', backgroundColor: '#E2E8F0', borderRadius: '100px', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${job.progress_pct}%`, backgroundColor: '#3182F6', borderRadius: '100px', transition: 'width 0.5s' }} />
-                  </div>
-                </div>
-              )}
-
-              {job.status === 'failed' && job.error_msg && (
-                <p style={{ fontSize: '12px', color: '#EF4444', marginTop: '6px' }}>오류: {job.error_msg}</p>
-              )}
-            </div>
-
-            {/* 우측 액션 버튼 */}
-            <div style={{ flexShrink: 0 }}>
-              {job.status === 'completed' && job.report_id && (
-                <button
-                  onClick={() => handleView(job)}
-                  disabled={loadingReport === job.job_id}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '4px',
-                    padding: '8px 14px', borderRadius: '10px',
-                    fontSize: '13px', fontWeight: 600,
-                    color: '#3182F6', backgroundColor: '#EFF6FF',
-                    border: 'none', cursor: 'pointer',
-                  }}
-                >
-                  {loadingReport === job.job_id
-                    ? <Loader2 style={{ width: '14px', height: '14px' }} className="animate-spin" />
-                    : <><ChevronRight style={{ width: '14px', height: '14px' }} />결과 보기</>
-                  }
-                </button>
-              )}
-              {job.status === 'running' && (
-                <button
-                  onClick={() => handleViewProgress(job)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '4px',
-                    padding: '8px 14px', borderRadius: '10px',
-                    fontSize: '13px', fontWeight: 600,
-                    color: '#1D4ED8', backgroundColor: '#DBEAFE',
-                    border: 'none', cursor: 'pointer',
-                  }}
-                >
-                  <Loader2 style={{ width: '14px', height: '14px' }} className="animate-spin" />
-                  진행상황 보기
-                </button>
-              )}
+              {/* 우측 액션 버튼 */}
+              <div style={{ flexShrink: 0 }}>
+                {job.status === 'completed' && job.report_id && (
+                  <button
+                    onClick={() => handleView(job)}
+                    disabled={loadingReport === job.job_id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '4px',
+                      padding: '8px 14px', borderRadius: '10px',
+                      fontSize: '13px', fontWeight: 600,
+                      color: '#FF7A00', backgroundColor: '#FFF3E8',
+                      border: 'none', cursor: 'pointer',
+                    }}
+                  >
+                    {loadingReport === job.job_id
+                      ? <Loader2 style={{ width: '14px', height: '14px' }} className="animate-spin" />
+                      : <><ChevronRight style={{ width: '14px', height: '14px' }} />결과 보기</>
+                    }
+                  </button>
+                )}
+                {job.status === 'running' && (
+                  <button
+                    onClick={() => handleViewProgress(job)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '4px',
+                      padding: '8px 14px', borderRadius: '10px',
+                      fontSize: '13px', fontWeight: 600,
+                      color: '#E56E00', backgroundColor: '#FFE4C4',
+                      border: 'none', cursor: 'pointer',
+                    }}
+                  >
+                    <Loader2 style={{ width: '14px', height: '14px' }} className="animate-spin" />
+                    진행상황 보기
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
