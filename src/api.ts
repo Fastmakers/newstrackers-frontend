@@ -73,6 +73,7 @@ export interface Job {
   company: string | null;
   job_title: string | null;
   industry: string | null;
+  career_level: string | null;
   created_at: string;
   started_at: string | null;
   completed_at: string | null;

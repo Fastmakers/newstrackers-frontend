@@ -60,7 +60,7 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange }: UploadS
     pollRef.current = window.setInterval(async () => {
       try {
         const job = await getJob(jobId);
-        setProgressPct(job.progress_pct);
+        setProgressPct(prev => Math.max(prev, job.progress_pct));
 
         if (job.status === 'completed' && job.report_id) {
           stopPolling();

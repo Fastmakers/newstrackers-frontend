@@ -58,6 +58,7 @@ function DetailHeader({ onBack, job, rightSlot }: { onBack: () => void; job: Job
             { label: '지원 기업', val: job.company },
             { label: '직무', val: job.job_title },
             { label: '산업', val: job.industry },
+            { label: '지원 유형', val: job.career_level },
           ].filter(i => i.val).map(item => (
             <div key={item.label}>
               <p style={{ fontSize: '11px', color: '#9CA3AF', marginBottom: '1px', fontWeight: 500 }}>{item.label}</p>
@@ -110,7 +111,7 @@ export function JobHistory() {
     progressPollRef.current = window.setInterval(async () => {
       try {
         const updated = await getJob(job.job_id);
-        setProgressJob(updated);
+        setProgressJob(prev => prev ? { ...updated, progress_pct: Math.max(prev.progress_pct, updated.progress_pct) } : updated);
 
         if (updated.status === 'completed' && updated.report_id) {
           stopProgressPolling();
@@ -269,7 +270,15 @@ export function JobHistory() {
                 {job.company || '기업 미입력'}
                 {job.job_title && <span style={{ fontWeight: 400, color: '#6B7280', fontSize: '14px' }}> · {job.job_title}</span>}
               </p>
-              {job.industry && <p style={{ fontSize: '12px', color: '#9CA3AF' }}>{job.industry}</p>}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {job.industry && <p style={{ fontSize: '12px', color: '#9CA3AF' }}>{job.industry}</p>}
+                {job.career_level && (
+                  <>
+                    {job.industry && <span style={{ fontSize: '12px', color: '#CBD5E1' }}>·</span>}
+                    <span style={{ fontSize: '12px', color: '#9CA3AF' }}>{job.career_level}</span>
+                  </>
+                )}
+              </div>
 
               {/* 진행 중일 때 progress bar */}
               {job.status === 'running' && (
