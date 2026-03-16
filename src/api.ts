@@ -143,3 +143,67 @@ export async function getReports(): Promise<any[]> {
   const data = await res.json();
   return data.reports ?? [];
 }
+
+// ---------------------------------------------------------------------------
+// Streaming Analysis
+// ---------------------------------------------------------------------------
+
+export type StreamEventType =
+  | { type: 'progress'; step: number; status: 'start' | 'done'; label: string; detail?: string }
+  | { type: 'partial'; field: string; data: any; count?: number }
+  | { type: 'token'; field: 'final_report'; token: string }
+  | { type: 'result'; data: any; job_id?: string; report_id?: string }
+  | { type: 'error'; message: string };
+
+/**
+ * POST /api/v1/analysis/stream — fetch + ReadableStream SSE 파서
+ * 각 이벤트마다 onEvent 콜백을 호출한다.
+ * signal을 통해 중단 가능.
+ */
+export async function streamAnalysis(
+  formData: FormData,
+  onEvent: (event: StreamEventType) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/analysis/stream`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: formData,
+    signal,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `스트리밍 요청 실패 (${res.status})`);
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error('스트림을 읽을 수 없습니다.');
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';  // 마지막 미완성 줄은 버퍼에 보관
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith('data: ')) continue;
+        try {
+          const event = JSON.parse(trimmed.slice(6)) as StreamEventType;
+          onEvent(event);
+        } catch {
+          // 파싱 실패 무시
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}

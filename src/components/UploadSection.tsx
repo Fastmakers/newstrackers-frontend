@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Upload, FileText, Loader2, CheckCircle2 } from 'lucide-react';
-import { createJob, getJob, getReport } from '../api';
+import { Upload, FileText } from 'lucide-react';
+import { streamAnalysis } from '../api';
+import { StreamingReport } from './StreamingReport';
+import type { StreamingState } from './StreamingReport';
 
 interface UploadSectionProps {
   onAnalysisComplete: (data: any) => void;
@@ -14,15 +16,6 @@ const INDUSTRY_OPTIONS = [
   '건설 부동산', '방산', '제조업',
 ];
 
-const PIPELINE_STEPS = [
-  { step: 1, label: 'PDF 파싱', pct: 10 },
-  { step: 2, label: '자소서 AI 분석', pct: 25 },
-  { step: 3, label: '검색 쿼리 최적화', pct: 30 },
-  { step: 4, label: '관련 뉴스 하이브리드 검색', pct: 55 },
-  { step: 5, label: 'SWOT + 산업 연관성 분석', pct: 80 },
-  { step: 6, label: '최종 면접 리포트 생성', pct: 100 },
-];
-
 const card: React.CSSProperties = {
   backgroundColor: '#ffffff',
   borderRadius: '16px',
@@ -30,55 +23,33 @@ const card: React.CSSProperties = {
   boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
 };
 
+const STEP_PROGRESS: Record<string, number> = {
+  '2-done': 25, '3-done': 30, '4-done': 55, '5-done': 80, '6-start': 82, '6-done': 100,
+};
+
 export function UploadSection({ onAnalysisComplete, onAnalyzingChange }: UploadSectionProps) {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState({ targetIndustry: '', targetCompany: '', targetPosition: '', careerLevel: '신입' });
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [progressPct, setProgressPct] = useState(0);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const pollRef = useRef<number | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamState, setStreamState] = useState<StreamingState>({
+    finalReportText: '', progressPct: 10, currentLabel: 'PDF 파싱 완료', elapsedSeconds: 0,
+  });
+  const abortRef = useRef<AbortController | null>(null);
+  const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!isAnalyzing) {
-      setElapsedSeconds(0);
-      setProgressPct(0);
+    if (!isStreaming) {
+      if (timerRef.current !== null) window.clearInterval(timerRef.current);
       return;
     }
-    const timer = window.setInterval(() => setElapsedSeconds((p) => p + 1), 1000);
-    return () => window.clearInterval(timer);
-  }, [isAnalyzing]);
-
-  const stopPolling = () => {
-    if (pollRef.current !== null) {
-      window.clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  };
-
-  const startPolling = (jobId: string) => {
-    pollRef.current = window.setInterval(async () => {
-      try {
-        const job = await getJob(jobId);
-        setProgressPct(prev => Math.max(prev, job.progress_pct));
-
-        if (job.status === 'completed' && job.report_id) {
-          stopPolling();
-          const report = await getReport(job.report_id);
-          setIsAnalyzing(false);
-          onAnalyzingChange?.(false);
-          onAnalysisComplete({ ...report, apiResponse: report });
-        } else if (job.status === 'failed') {
-          stopPolling();
-          setIsAnalyzing(false);
-          onAnalyzingChange?.(false);
-          setSubmitError(job.error_msg || '분석 중 오류가 발생했습니다.');
-        }
-      } catch {
-        // 일시적 네트워크 오류는 무시하고 계속 폴링
-      }
-    }, 3000);
-  };
+    setStreamState(prev => ({ ...prev, elapsedSeconds: 0 }));
+    timerRef.current = window.setInterval(
+      () => setStreamState(prev => ({ ...prev, elapsedSeconds: prev.elapsedSeconds + 1 })),
+      1000,
+    );
+    return () => { if (timerRef.current !== null) window.clearInterval(timerRef.current); };
+  }, [isStreaming]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -97,84 +68,64 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange }: UploadS
     if (formData.targetPosition.trim()) payload.append('job_title', formData.targetPosition.trim());
     payload.append('career_level', formData.careerLevel);
 
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     const cancel = () => {
-      stopPolling();
-      setIsAnalyzing(false);
+      controller.abort();
+      setIsStreaming(false);
       onAnalyzingChange?.(false);
     };
 
-    try {
-      setIsAnalyzing(true);
-      onAnalyzingChange?.(true, cancel);
-      setProgressPct(10);
+    setIsStreaming(true);
+    setStreamState({ finalReportText: '', progressPct: 10, currentLabel: 'PDF 파싱 완료', elapsedSeconds: 0, uploadedFileName: uploadedFile.name });
+    onAnalyzingChange?.(true, cancel);
 
-      const { job_id } = await createJob(payload);
-      startPolling(job_id);
+    try {
+      await streamAnalysis(payload, (event) => {
+        if (event.type === 'progress') {
+          const pct = STEP_PROGRESS[`${event.step}-${event.status}`];
+          setStreamState(prev => ({
+            ...prev,
+            ...(pct !== undefined ? { progressPct: Math.max(prev.progressPct, pct) } : {}),
+            currentLabel: event.label,
+          }));
+        } else if (event.type === 'partial') {
+          if (event.field === 'resume_profile') {
+            setStreamState(prev => ({ ...prev, resumeProfile: event.data }));
+          } else if (event.field === 'matched_news') {
+            setStreamState(prev => ({ ...prev, matchedNews: event.data }));
+          } else if (event.field === 'swot') {
+            setStreamState(prev => ({ ...prev, swot: event.data }));
+          } else if (event.field === 'relevance_analysis') {
+            setStreamState(prev => ({ ...prev, relevanceAnalysis: event.data }));
+          }
+        } else if (event.type === 'token') {
+          setStreamState(prev => ({ ...prev, finalReportText: prev.finalReportText + event.token }));
+        } else if (event.type === 'result') {
+          setIsStreaming(false);
+          onAnalyzingChange?.(false);
+          onAnalysisComplete({ ...event.data, apiResponse: event.data });
+        } else if (event.type === 'error') {
+          setIsStreaming(false);
+          onAnalyzingChange?.(false);
+          setSubmitError(event.message);
+        }
+      }, controller.signal);
     } catch (error) {
-      setIsAnalyzing(false);
+      if (!controller.signal.aborted) {
+        setSubmitError(error instanceof Error ? error.message : '분석 요청 중 오류가 발생했습니다.');
+      }
+      setIsStreaming(false);
       onAnalyzingChange?.(false);
-      setSubmitError(error instanceof Error ? error.message : '분석 요청 중 오류가 발생했습니다.');
     }
   };
 
   // ---------------------------------------------------------------------------
-  // 분석 진행 중 화면
+  // 스트리밍 진행 중 화면 — 단계별 결과 등장
   // ---------------------------------------------------------------------------
-  if (isAnalyzing) {
-    const currentStep = PIPELINE_STEPS.findLast((s) => progressPct >= s.pct) ?? PIPELINE_STEPS[0];
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 0' }}>
-        <div style={{ ...card, width: '100%', maxWidth: '440px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-            <Loader2 style={{ width: '20px', height: '20px', color: '#3182F6', flexShrink: 0 }} className="animate-spin" />
-            <div>
-              <p style={{ fontWeight: 700, color: '#191F28', fontSize: '15px' }}>AI 분석 리포트 생성 중</p>
-              <p style={{ fontSize: '12px', color: '#8B95A1', marginTop: '2px' }}>분석이 끝나면 결과 화면으로 이동합니다</p>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: '#1D4ED8' }}>{currentStep.label}</span>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#3182F6' }}>{progressPct}%</span>
-            </div>
-            <div style={{ height: '6px', backgroundColor: '#E2E8F0', borderRadius: '100px', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${progressPct}%`, backgroundColor: '#3182F6', borderRadius: '100px', transition: 'width 0.6s ease' }} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {PIPELINE_STEPS.map(({ step, label, pct }) => {
-              const isDone = progressPct >= pct;
-              const isActive = progressPct >= (PIPELINE_STEPS[step - 2]?.pct ?? 0) && !isDone;
-              return (
-                <div key={step} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  {isDone ? (
-                    <CheckCircle2 style={{ width: '16px', height: '16px', color: '#22C55E', flexShrink: 0 }} />
-                  ) : isActive ? (
-                    <Loader2 style={{ width: '16px', height: '16px', color: '#3182F6', flexShrink: 0 }} className="animate-spin" />
-                  ) : (
-                    <span style={{ width: '16px', height: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#E2E8F0', display: 'block' }} />
-                    </span>
-                  )}
-                  <span style={{ fontSize: '13px', color: isDone ? '#CBD5E1' : isActive ? '#191F28' : '#CBD5E1', fontWeight: isActive ? 600 : 400, textDecoration: isDone ? 'line-through' : 'none' }}>
-                    {label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '12px', color: '#8B95A1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '220px' }}>
-              {uploadedFile?.name ?? '분석 진행 중'}
-            </span>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#3182F6' }}>{elapsedSeconds}초</span>
-          </div>
-        </div>
-      </div>
-    );
+  if (isStreaming) {
+    return <StreamingReport {...streamState} />;
   }
 
   // ---------------------------------------------------------------------------
