@@ -30,11 +30,11 @@ function AccordionSection({ title, body }: { title: string; body: string }) {
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '12px 0', background: 'none', border: 'none', cursor: 'pointer' }}
       >
         <span style={{ fontSize: '13px', fontWeight: 600, color: '#4E5968' }}>{title}</span>
-        <span style={{ fontSize: '12px', color: '#3182F6' }}>{open ? '접기' : '펼치기'}</span>
+        <span style={{ fontSize: '12px', color: '#FF7A00' }}>{open ? '접기' : '펼치기'}</span>
       </button>
       {open && (
         <div style={{ paddingBottom: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {renderMarkdown(body, { baseSize: 15, baseColor: '#374151' })}
+          {renderMarkdown(body, { baseSize: 15, baseColor: '#2B2E34' })}
         </div>
       )}
     </div>
@@ -56,8 +56,8 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
   return (
     <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '28px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
       <div style={{ marginBottom: '20px' }}>
-        <p style={{ fontWeight: 700, fontSize: '17px', color: '#191F28' }}>관련 뉴스</p>
-        <p style={{ fontSize: '14px', color: '#8B95A1', marginTop: '3px' }}>{profile.industry || '산업'} 기반 {news.length}건 매칭</p>
+        <p style={{ fontWeight: 700, fontSize: '17px', color: '#2B2E34' }}>관련 뉴스</p>
+        <p style={{ fontSize: '14px', color: '#616161', marginTop: '3px' }}>{profile.industry || '산업'} 기반 {news.length}건 매칭</p>
       </div>
 
       {warn && (
@@ -67,7 +67,7 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
         </div>
       )}
 
-      {news.length === 0 && <p style={{ fontSize: '14px', color: '#8B95A1' }}>매칭된 뉴스 데이터가 없습니다.</p>}
+      {news.length === 0 && <p style={{ fontSize: '14px', color: '#616161' }}>매칭된 뉴스 데이터가 없습니다.</p>}
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {visible.map((trend: any, idx: number) => {
@@ -84,18 +84,18 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
               onMouseLeave={e => (e.currentTarget.style.backgroundColor = '')}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: '14px', fontWeight: 600, color: '#191F28', lineHeight: 1.5, margin: 0 }}>{trend.title || '제목 없음'}</p>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: '#2B2E34', lineHeight: 1.5, margin: 0 }}>{trend.title || '제목 없음'}</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                  <span style={{ fontSize: '12px', color: '#8B95A1' }}>{trend.job_category || '뉴스'}</span>
+                  <span style={{ fontSize: '12px', color: '#616161' }}>{trend.job_category || '뉴스'}</span>
                   <span style={{ fontSize: '12px', color: '#CBD5E1' }}>·</span>
-                  <span style={{ fontSize: '12px', color: '#8B95A1' }}>{toKST(trend.published_at)}</span>
+                  <span style={{ fontSize: '12px', color: '#616161' }}>{toKST(trend.published_at)}</span>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                 {similarity !== null ? (
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#2563EB', backgroundColor: '#EFF6FF', padding: '3px 10px', borderRadius: '100px' }}>{similarity}%</span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#FF7A00', backgroundColor: '#FFF3E8', padding: '3px 10px', borderRadius: '100px' }}>{similarity}%</span>
                 ) : (
-                  <span style={{ fontSize: '11px', color: '#8B95A1', backgroundColor: '#F2F4F6', padding: '3px 10px', borderRadius: '100px' }}>키워드</span>
+                  <span style={{ fontSize: '11px', color: '#616161', backgroundColor: '#F2F4F6', padding: '3px 10px', borderRadius: '100px' }}>키워드</span>
                 )}
                 <ExternalLink style={{ width: '14px', height: '14px', color: '#CBD5E1' }} />
               </div>
@@ -108,7 +108,7 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
         <button
           type="button"
           onClick={() => setShowAll(p => !p)}
-          style={{ fontSize: '13px', fontWeight: 600, color: '#3182F6', background: 'none', border: 'none', cursor: 'pointer', marginTop: '8px', padding: '4px 0' }}
+          style={{ fontSize: '13px', fontWeight: 600, color: '#FF7A00', background: 'none', border: 'none', cursor: 'pointer', marginTop: '8px', padding: '4px 0' }}
         >
           {showAll ? '접기' : `${news.length - 3}건 더 보기`}
         </button>
@@ -116,7 +116,7 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
 
       {api.relevance_analysis && (
         <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #F2F4F6' }}>
-          <p style={{ fontWeight: 700, fontSize: '15px', color: '#191F28', marginBottom: '12px' }}>AI 종합 분석</p>
+          <p style={{ fontWeight: 700, fontSize: '15px', color: '#2B2E34', marginBottom: '12px' }}>AI 종합 분석</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
             {sections.map((sec, i) => (
               <AccordionSection key={`${sec.title}-${i}`} title={sec.title} body={sec.body} />

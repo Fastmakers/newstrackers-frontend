@@ -73,11 +73,19 @@ export interface Job {
   company: string | null;
   job_title: string | null;
   industry: string | null;
+  career_level: string | null;
   created_at: string;
   started_at: string | null;
   completed_at: string | null;
   error_msg: string | null;
   report_id: string | null;
+  partial_result?: {
+    resume_profile?: any;
+    matched_news?: any[];
+    swot?: any;
+    relevance_analysis?: string;
+    final_report?: string;
+  };
 }
 
 export async function createJob(formData: FormData): Promise<{ job_id: string; status: string }> {
@@ -142,3 +150,4 @@ export async function getReports(): Promise<any[]> {
   const data = await res.json();
   return data.reports ?? [];
 }
+
