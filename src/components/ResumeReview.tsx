@@ -1,4 +1,11 @@
-import { Edit3, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Tag, StarsIcon, CheckCircle2 } from "lucide-react";
+
+const stripMd = (t: string) =>
+  t
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .trim();
 
 interface ResumeReviewProps {
   data: any;
@@ -7,74 +14,199 @@ interface ResumeReviewProps {
 export function ResumeReview({ data }: ResumeReviewProps) {
   const apiResponse = data?.apiResponse ?? data ?? {};
   const resumeProfile = apiResponse.resume_profile ?? {};
-
-  const skills = Array.isArray(resumeProfile.skills) ? resumeProfile.skills : [];
-  const experiences = Array.isArray(resumeProfile.experiences) ? resumeProfile.experiences : [];
-
-  const summaryCards = [
-    { label: '지원 직무', value: resumeProfile.job_title || '-' },
-    { label: '지원 산업', value: resumeProfile.industry || '-' },
-    { label: '지원 기업', value: resumeProfile.company || '-' },
-  ];
+  const skills = Array.isArray(resumeProfile.skills)
+    ? resumeProfile.skills
+    : [];
+  const experiences = Array.isArray(resumeProfile.experiences)
+    ? resumeProfile.experiences
+    : [];
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-            <Edit3 className="w-5 h-5 text-green-600" />
-          </div>
-          <div>
-            <h2 className="font-bold text-slate-900 text-xl">자소서 첨삭 요약</h2>
-            <p className="text-sm text-slate-600">API 응답 기반 프로필/최종 리포트</p>
-          </div>
-        </div>
+    <div
+      style={{
+        backgroundColor: "#ffffff",
+        borderRadius: "16px",
+        padding: "28px",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+      }}
+    >
+      <p
+        style={{
+          fontSize: "11px",
+          fontWeight: 700,
+          color: "#9CA3AF",
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          marginBottom: "6px",
+        }}
+      >
+        RESUME ANALYSIS
+      </p>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          marginBottom: "22px",
+        }}
+      >
+        <span style={{ fontSize: "18px" }}>📄</span>
+        <p
+          style={{
+            fontWeight: 700,
+            fontSize: "18px",
+            color: "#2B2E34",
+            margin: 0,
+          }}
+        >
+          자소서 분석 요약
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
-        {summaryCards.map((card, index) => (
-          <div key={index} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-            <div className="text-sm font-medium text-slate-700 mb-2">{card.label}</div>
-            <div className="text-base font-bold text-slate-900 break-words">{card.value}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-        <div className="border border-slate-200 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <CheckCircle2 className="w-4 h-4 text-green-600" />
-            <h3 className="font-medium text-slate-900">핵심 스킬</h3>
+      <div
+        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}
+      >
+        {/* 핵심 스킬 */}
+        <div
+          style={{
+            backgroundColor: "rgba(245, 245, 245, 0.5)",
+            borderRadius: "14px",
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              marginBottom: "14px",
+            }}
+          >
+            <span
+              style={{
+                width: "16px",
+                height: "16px",
+                borderRadius: "50%",
+                // backgroundColor: "#4F46E5",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Tag />
+            </span>
+            <p
+              style={{
+                fontSize: "14px",
+                fontWeight: 700,
+                margin: 0,
+              }}
+            >
+              핵심 스킬
+            </p>
           </div>
           {skills.length === 0 ? (
-            <p className="text-sm text-slate-600">스킬 데이터가 없습니다.</p>
+            <p style={{ fontSize: "13px", color: "#616161" }}>데이터 없음</p>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {skills.map((skill: string, index: number) => (
-                <span key={index} className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-200">
-                  {skill}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
+              {skills.map((skill: string, i: number) => (
+                <span
+                  key={i}
+                  style={{
+                    padding: "6px 14px",
+                    backgroundColor: "#FFF3E8",
+                    color: "#FF7A00",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    borderRadius: "100px",
+                  }}
+                >
+                  {stripMd(skill)}
                 </span>
               ))}
             </div>
           )}
         </div>
 
-        <div className="border border-slate-200 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="w-4 h-4 text-orange-600" />
-            <h3 className="font-medium text-slate-900">주요 경험</h3>
+        {/* 주요 경험 */}
+        <div
+          style={{
+            backgroundColor: "rgba(245, 245, 245, 0.5)",
+            borderRadius: "14px",
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              marginBottom: "14px",
+            }}
+          >
+            <span
+              style={{
+                width: "16px",
+                height: "16px",
+                borderRadius: "50%",
+                // backgroundColor: "#7C3AED",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <StarsIcon />
+            </span>
+            <p
+              style={{
+                fontSize: "14px",
+                fontWeight: 700,
+                margin: 0,
+              }}
+            >
+              주요 경험
+            </p>
           </div>
           {experiences.length === 0 ? (
-            <p className="text-sm text-slate-600">경험 데이터가 없습니다.</p>
+            <p style={{ fontSize: "13px", color: "#616161" }}>데이터 없음</p>
           ) : (
-            <ul className="space-y-1.5 text-sm text-slate-700">
-              {experiences.map((experience: string, index: number) => (
-                <li key={index} className="flex items-start gap-2">
-                  <span className="text-slate-400 mt-0.5">•</span>
-                  <span>{experience}</span>
-                </li>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+            >
+              {experiences.map((exp: string, i: number) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "8px",
+                  }}
+                >
+                  <span
+                    style={{
+                      color: "#FF7A00",
+                      fontWeight: 700,
+                      flexShrink: 0,
+                      marginTop: "1px",
+                    }}
+                  >
+                    <CheckCircle2 style={{ width: "20" }} />
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      color: "#2B2E34",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {stripMd(exp)}
+                  </span>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       </div>
