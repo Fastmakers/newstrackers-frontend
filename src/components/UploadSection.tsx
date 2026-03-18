@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Upload, FileText } from 'lucide-react';
 import { createJob, getJob, getReport } from '../api';
+import { useAuthStore } from '../store/authStore';
 import type { StreamingState } from './StreamingReport';
 
 interface UploadSectionProps {
@@ -24,6 +25,7 @@ const card: React.CSSProperties = {
 };
 
 export function UploadSection({ onAnalysisComplete, onAnalyzingChange, onStreamingStateChange }: UploadSectionProps) {
+  const { isAuthenticated } = useAuthStore();
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState({ targetIndustry: '', targetCompany: '', targetPosition: '', careerLevel: '신입' });
@@ -52,6 +54,7 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange, onStreami
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!isAuthenticated) { setSubmitError('분석을 시작하려면 로그인이 필요합니다.'); return; }
     if (!uploadedFile) { setSubmitError('PDF 파일을 먼저 업로드해주세요.'); return; }
     setSubmitError(null);
 

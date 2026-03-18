@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
 import { toPng } from "html-to-image";
 import { UploadSection } from "./components/UploadSection";
@@ -28,6 +28,21 @@ export default function App() {
   const reportExportRef = useRef<HTMLDivElement | null>(null);
   const cancelAnalysisRef = useRef<(() => void) | null>(null);
   const activeStreamSidRef = useRef<string | null>(null);
+
+  // 로그아웃 시 분석 데이터 초기화
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setAnalysisData(null);
+      setStreamingState(null);
+      setIsAnalyzing(false);
+      if (cancelAnalysisRef.current) {
+        cancelAnalysisRef.current();
+        cancelAnalysisRef.current = null;
+      }
+      activeStreamSidRef.current = null;
+      setActiveTab("upload");
+    }
+  }, [isAuthenticated]);
 
   const handleAnalysisComplete = (data: any) => {
     setAnalysisData(data);

@@ -180,21 +180,17 @@ export function StreamingReport({ resumeProfile, matchedNews, swot, relevanceAna
         </div>
       )}
 
-      {matchedNews && matchedNews.length > 0 && (
-        <MatchedNewsSection news={matchedNews} />
-      )}
-
       {swot && (Object.values(swot).some((v: any) => Array.isArray(v) && v.length > 0)) && (
         <div style={fadeIn}>
           <SwotAnalysis data={partialData} />
         </div>
       )}
 
-      {relevanceAnalysis && relevanceAnalysis.trim().length > 0 && (
+      {(matchedNews && matchedNews.length > 0) || (relevanceAnalysis && relevanceAnalysis.trim().length > 0) ? (
         <div style={fadeIn}>
           <IndustryAnalysis data={partialData} />
         </div>
-      )}
+      ) : null}
 
       {progressPct >= 80 && (
         <StreamingFinalReport text={finalReportText} />

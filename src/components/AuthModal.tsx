@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { User, ChevronDown } from "lucide-react";
 import { loginUser, registerUser } from "../api/auth";
 import { useAuthStore } from "../store/authStore";
 
@@ -108,13 +107,28 @@ export function AuthPanel({ onClose }: AuthPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const pos = useBtnPosition("auth-login-btn");
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
+    const handleMouseDown = (e: MouseEvent) => {
+      const btn = document.getElementById("auth-login-btn");
+      if (btn && btn.contains(e.target as Node)) return;
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    const timer = setTimeout(() => {
+      document.addEventListener("mousedown", handleMouseDown);
+    }, 0);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      clearTimeout(timer);
+      document.removeEventListener("mousedown", handleMouseDown);
+    };
   }, [onClose]);
 
   const switchTab = (t: Tab) => {
@@ -153,59 +167,63 @@ export function AuthPanel({ onClose }: AuthPanelProps) {
     }
   };
 
+  if (!pos) return null;
+
   return (
     <div
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.45)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center" }}
-    >
-    <div
       ref={panelRef}
-      style={{ width: 360, borderRadius: 16, backgroundColor: "#fff", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", overflow: "hidden" }}
+      style={{
+        position: "fixed",
+        top: pos.top,
+        right: pos.right,
+        width: 360,
+        borderRadius: 16,
+        backgroundColor: "#fff",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+        overflow: "hidden",
+        zIndex: 50,
+      }}
     >
       {/* Tab */}
-      <div className="flex border-b border-slate-200 mx-1 mt-1">
-        <button
-          onClick={() => switchTab("login")}
-          className="flex-1 py-3 text-sm font-medium transition-colors flex flex-col items-center gap-1"
-        >
-          <span
-            className={
-              tab === "login"
-                ? "text-blue-600"
-                : "text-slate-500 hover:text-slate-700"
-            }
+      <div style={{ display: "flex", borderBottom: "1px solid #E5E7EB", margin: "4px 4px 0" }}>
+        {(["login", "register"] as Tab[]).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => switchTab(t)}
+            style={{
+              flex: 1,
+              padding: "12px 0",
+              fontSize: "14px",
+              fontWeight: 500,
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "4px",
+              color: tab === t ? "#FF7A00" : "#9CA3AF",
+              transition: "color 0.15s",
+            }}
           >
-            로그인
-          </span>
-          <span
-            className={`h-0.5 w-8 rounded-full transition-colors ${tab === "login" ? "bg-blue-600" : "bg-transparent"}`}
-          />
-        </button>
-        <div className="w-px bg-slate-200 my-2" />
-        <button
-          onClick={() => switchTab("register")}
-          className="flex-1 py-3 text-sm font-medium transition-colors flex flex-col items-center gap-1"
-        >
-          <span
-            className={
-              tab === "register"
-                ? "text-blue-600"
-                : "text-slate-500 hover:text-slate-700"
-            }
-          >
-            회원가입
-          </span>
-          <span
-            className={`h-0.5 w-8 rounded-full transition-colors ${tab === "register" ? "bg-blue-600" : "bg-transparent"}`}
-          />
-        </button>
+            {t === "login" ? "로그인" : "회원가입"}
+            <span style={{
+              height: "2px",
+              width: "32px",
+              borderRadius: "100px",
+              backgroundColor: tab === t ? "#FF7A00" : "transparent",
+              transition: "background-color 0.15s",
+            }} />
+          </button>
+        ))}
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="px-6 py-6 space-y-4">
+      <form onSubmit={handleSubmit} style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
         {tab === "register" && (
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
+            <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "#616161", marginBottom: "6px" }}>
               닉네임
             </label>
             <input
@@ -213,14 +231,16 @@ export function AuthPanel({ onClose }: AuthPanelProps) {
               required
               value={form.nickname}
               onChange={(e) => setForm({ ...form, nickname: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              style={{ width: "100%", padding: "9px 12px", border: "1px solid #E2E8F0", borderRadius: "8px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#FF7A00")}
+              onBlur={(e) => (e.currentTarget.style.borderColor = "#E2E8F0")}
               placeholder="닉네임 입력"
             />
           </div>
         )}
 
         <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">
+          <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "#616161", marginBottom: "6px" }}>
             이메일
           </label>
           <input
@@ -228,50 +248,49 @@ export function AuthPanel({ onClose }: AuthPanelProps) {
             required
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            style={{ width: "100%", padding: "9px 12px", border: "1px solid #E2E8F0", borderRadius: "8px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+            onFocus={(e) => (e.currentTarget.style.borderColor = "#FF7A00")}
+            onBlur={(e) => (e.currentTarget.style.borderColor = "#E2E8F0")}
             placeholder="example@email.com"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">
-            비밀번호
-            {tab === "register" && (
-              <span className="text-slate-400 font-normal ml-1">
-                (8자 이상)
-              </span>
-            )}
+          <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "#616161", marginBottom: "6px" }}>
+            비밀번호{tab === "register" && <span style={{ fontWeight: 400, color: "#9CA3AF", marginLeft: "4px" }}>(8자 이상)</span>}
           </label>
           <input
             type="password"
             required
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            style={{ width: "100%", padding: "9px 12px", border: "1px solid #E2E8F0", borderRadius: "8px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+            onFocus={(e) => (e.currentTarget.style.borderColor = "#FF7A00")}
+            onBlur={(e) => (e.currentTarget.style.borderColor = "#E2E8F0")}
             placeholder="비밀번호 입력"
           />
         </div>
 
         {tab === "register" && (
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
+            <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "#616161", marginBottom: "6px" }}>
               비밀번호 확인
             </label>
             <input
               type="password"
               required
               value={form.confirmPassword}
-              onChange={(e) =>
-                setForm({ ...form, confirmPassword: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+              style={{ width: "100%", padding: "9px 12px", border: "1px solid #E2E8F0", borderRadius: "8px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#FF7A00")}
+              onBlur={(e) => (e.currentTarget.style.borderColor = "#E2E8F0")}
               placeholder="비밀번호 재입력"
             />
           </div>
         )}
 
         {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          <div style={{ borderRadius: "8px", border: "1px solid #FECACA", backgroundColor: "#FEF2F2", padding: "8px 12px", fontSize: "12px", color: "#DC2626" }}>
             {error}
           </div>
         )}
@@ -279,38 +298,40 @@ export function AuthPanel({ onClose }: AuthPanelProps) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed text-sm"
+          style={{
+            width: "100%",
+            padding: "10px",
+            borderRadius: "10px",
+            fontSize: "14px",
+            fontWeight: 700,
+            color: "#ffffff",
+            backgroundColor: loading ? "#CBD5E1" : "#FF7A00",
+            border: "none",
+            cursor: loading ? "not-allowed" : "pointer",
+            transition: "background-color 0.15s",
+          }}
         >
           {loading ? "처리 중..." : tab === "login" ? "로그인" : "회원가입"}
         </button>
 
-        <p className="text-center text-xs text-slate-500 pt-1 pb-6">
+        <p style={{ textAlign: "center", fontSize: "12px", color: "#9CA3AF", paddingBottom: "8px" }}>
           {tab === "login" ? (
             <>
               계정이 없으신가요?{" "}
-              <button
-                type="button"
-                onClick={() => switchTab("register")}
-                className="text-blue-600  text-sm"
-              >
+              <button type="button" onClick={() => switchTab("register")} style={{ color: "#FF7A00", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontSize: "13px" }}>
                 회원가입
               </button>
             </>
           ) : (
             <>
               이미 계정이 있으신가요?{" "}
-              <button
-                type="button"
-                onClick={() => switchTab("login")}
-                className="text-blue-600 text-sm"
-              >
+              <button type="button" onClick={() => switchTab("login")} style={{ color: "#FF7A00", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontSize: "13px" }}>
                 로그인
               </button>
             </>
           )}
         </p>
       </form>
-    </div>
     </div>
   );
 }
