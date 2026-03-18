@@ -35,6 +35,20 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange, onStreami
   });
   const timerRef = useRef<number | null>(null);
 
+  const resetForm = () => {
+    setUploadedFile(null);
+    setSubmitError(null);
+    setFormData({ targetIndustry: '', targetCompany: '', targetPosition: '', careerLevel: '신입' });
+    // file input 초기화
+    const input = document.getElementById('file-upload') as HTMLInputElement | null;
+    if (input) input.value = '';
+  };
+
+  // 로그아웃 시 폼 초기화
+  useEffect(() => {
+    if (!isAuthenticated) resetForm();
+  }, [isAuthenticated]);
+
   useEffect(() => {
     if (!isStreaming) {
       if (timerRef.current !== null) window.clearInterval(timerRef.current);
@@ -117,6 +131,7 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange, onStreami
           setIsStreaming(false);
           onStreamingStateChange?.(null, sid);
           onAnalyzingChange?.(false);
+          resetForm();
           onAnalysisComplete({ ...report, apiResponse: report });
           break;
         }
