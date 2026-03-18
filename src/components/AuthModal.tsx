@@ -81,7 +81,7 @@ export function UserMenuPanel({ onClose }: UserMenuPanelProps) {
         onClick={onClose}
         className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
       >
-        내 페이지
+        환경설정
       </button>
       <button
         onClick={() => {
