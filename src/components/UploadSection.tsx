@@ -98,6 +98,7 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange, onStreami
     setStreamState(initialState);
     onStreamingStateChange?.(initialState, sid);
     onAnalyzingChange?.(true, cancel);
+    resetForm();
 
     try {
       const { job_id } = await createJob(payload);
@@ -131,7 +132,6 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange, onStreami
           setIsStreaming(false);
           onStreamingStateChange?.(null, sid);
           onAnalyzingChange?.(false);
-          resetForm();
           onAnalysisComplete({ ...report, apiResponse: report });
           break;
         }
