@@ -1,4 +1,5 @@
 import { renderMarkdown } from './renderMarkdown';
+import { InterviewPrepCard, hasInterviewQuestions } from './InterviewPrepCard';
 
 interface FinalReportSummaryProps { data: any; }
 
@@ -31,27 +32,40 @@ export function FinalReportSummary({ data }: FinalReportSummaryProps) {
     );
   }
 
-  return (
-    <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '28px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <p style={{ fontWeight: 700, fontSize: '17px', color: '#2B2E34' }}>면접 준비 &amp; 최종 권고</p>
-        <p style={{ fontSize: '14px', color: '#616161', marginTop: '3px' }}>AI 분석 기반 맞춤형 전략</p>
-      </div>
+  const interviewSec = sections.find(s => s.key === '면접 준비 포인트');
+  const otherSections = sections.filter(s => s.key !== '면접 준비 포인트');
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        {sections.map((sec, i) => (
-          <div key={i}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-              <span style={{ display: 'block', width: '4px', height: '18px', borderRadius: '2px', backgroundColor: sec.color, flexShrink: 0 }} />
-              <span style={{ fontSize: '14px', fontWeight: 700, color: '#2B2E34' }}>{sec.label}</span>
-              <span style={{ fontSize: '11px', fontWeight: 600, color: sec.color, backgroundColor: sec.bg, padding: '2px 10px', borderRadius: '100px' }}>AI 추천</span>
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {interviewSec && (
+        hasInterviewQuestions(interviewSec.content)
+          ? <InterviewPrepCard content={interviewSec.content} />
+          : (
+            <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '28px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                <span style={{ display: 'block', width: '4px', height: '18px', borderRadius: '2px', backgroundColor: '#FF7A00', flexShrink: 0 }} />
+                <span style={{ fontSize: '14px', fontWeight: 700, color: '#2B2E34' }}>면접 준비 포인트</span>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#FF7A00', backgroundColor: '#FFF3E8', padding: '2px 10px', borderRadius: '100px' }}>AI 추천</span>
+              </div>
+              <div style={{ paddingLeft: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {renderMarkdown(interviewSec.content, { baseSize: 15, baseColor: '#2B2E34' })}
+              </div>
             </div>
-            <div style={{ paddingLeft: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {renderMarkdown(sec.content, { baseSize: 15, baseColor: '#2B2E34' })}
-            </div>
+          )
+      )}
+
+      {otherSections.map((sec, i) => (
+        <div key={i} style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '28px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+            <span style={{ display: 'block', width: '4px', height: '18px', borderRadius: '2px', backgroundColor: sec.color, flexShrink: 0 }} />
+            <span style={{ fontSize: '14px', fontWeight: 700, color: '#2B2E34' }}>{sec.label}</span>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: sec.color, backgroundColor: sec.bg, padding: '2px 10px', borderRadius: '100px' }}>AI 추천</span>
           </div>
-        ))}
-      </div>
+          <div style={{ paddingLeft: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {renderMarkdown(sec.content, { baseSize: 15, baseColor: '#2B2E34' })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
