@@ -76,6 +76,7 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange, onStreami
     const sid = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     let cancelled = false;
 
+
     const payload = new FormData();
     payload.append('file', uploadedFile);
     if (formData.targetIndustry.trim()) payload.append('industry', formData.targetIndustry.trim());
