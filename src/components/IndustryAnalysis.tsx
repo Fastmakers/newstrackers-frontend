@@ -6,6 +6,10 @@ import {
   BrainCircuit,
   ChevronDown,
   ChevronUp,
+  TrendingUp,
+  Zap,
+  MessageSquare,
+  type LucideIcon,
 } from "lucide-react";
 import { renderMarkdown } from "./renderMarkdown";
 
@@ -40,41 +44,50 @@ function toKST(iso: string) {
       });
 }
 
-function AccordionSection({ title, body }: { title: string; body: string }) {
+const SECTION_THEMES: { icon: LucideIcon; color: string; bg: string }[] = [
+  { icon: TrendingUp,     color: '#2563EB', bg: '#EFF6FF' },
+  { icon: Zap,            color: '#FF7A00', bg: '#FFF3E8' },
+  { icon: MessageSquare,  color: '#7C3AED', bg: '#F5F3FF' },
+];
+
+function AccordionSection({ title, body, index }: { title: string; body: string; index: number }) {
   const [open, setOpen] = useState(true);
+  const theme = SECTION_THEMES[index % SECTION_THEMES.length];
+  const Icon = theme.icon;
+
   return (
-    <div style={{ borderBottom: "1px solid #F2F4F6" }}>
+    <div style={{ borderRadius: '12px', border: '1px solid #F2F4F6', overflow: 'hidden' }}>
       <button
         type="button"
         onClick={() => setOpen((p) => !p)}
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          width: "100%",
-          padding: "12px 0",
-          background: "none",
-          border: "none",
-          cursor: "pointer",
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          width: '100%', padding: '14px 18px',
+          background: open ? theme.bg : '#ffffff',
+          border: 'none', cursor: 'pointer',
+          transition: 'background 0.15s',
         }}
       >
-        <span style={{ fontSize: "13px", fontWeight: 600, color: "#4E5968" }}>
-          {title}
-        </span>
-        <span style={{ fontSize: "12px", color: "#FF7A00" }}>
-          {open ? "접기" : "펼치기"}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{
+            width: '30px', height: '30px', borderRadius: '8px',
+            backgroundColor: open ? '#ffffff' : theme.bg,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            transition: 'background 0.15s',
+          }}>
+            <Icon size={15} color={theme.color} strokeWidth={2.5} />
+          </span>
+          <span style={{ fontSize: '14px', fontWeight: 700, color: '#2B2E34' }}>{title}</span>
+        </div>
+        {open
+          ? <ChevronUp size={16} color={theme.color} />
+          : <ChevronDown size={16} color="#9CA3AF" />
+        }
       </button>
+
       {open && (
-        <div
-          style={{
-            paddingBottom: "16px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "6px",
-          }}
-        >
-          {renderMarkdown(body, { baseSize: 15, baseColor: "#2B2E34" })}
+        <div style={{ padding: '4px 18px 18px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {renderMarkdown(body, { baseSize: 14, baseColor: '#2B2E34' })}
         </div>
       )}
     </div>
@@ -399,12 +412,13 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
               </p>
             </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {sections.map((sec, i) => (
               <AccordionSection
                 key={`${sec.title}-${i}`}
                 title={sec.title}
                 body={sec.body}
+                index={i}
               />
             ))}
           </div>

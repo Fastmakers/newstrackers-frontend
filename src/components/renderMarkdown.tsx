@@ -37,23 +37,38 @@ export function renderMarkdown(markdown: string, opts: MdOptions = {}): ReactNod
     const key = `list-${nodes.length}`;
     nodes.push(
       <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: '4px 0' }}>
-        {listItems.map((item, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-            {isNum ? (
-              <span style={{
-                width: '20px', height: '20px', minWidth: '20px', borderRadius: '50%',
-                backgroundColor: '#EEF2FF', color: '#4F46E5',
-                fontSize: '11px', fontWeight: 700, display: 'flex',
-                alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                {item.index}
-              </span>
-            ) : (
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#616161', marginTop: '8px', flexShrink: 0, display: 'block' }} />
-            )}
-            <span style={{ fontSize: `${baseSize}px`, color: baseColor, lineHeight: 1.7 }}>{renderInline(item.text)}</span>
-          </div>
-        ))}
+        {listItems.map((item, i) => {
+          const dashIdx = item.text.indexOf(' — ');
+          const colonIdx = dashIdx === -1 ? item.text.indexOf(': ') : -1;
+          const hasDash = dashIdx !== -1;
+          const hasColon = colonIdx !== -1;
+          const title = hasDash ? item.text.slice(0, dashIdx) : hasColon ? item.text.slice(0, colonIdx) : null;
+          const body  = hasDash ? item.text.slice(dashIdx + 3) : hasColon ? item.text.slice(colonIdx + 2) : item.text;
+          return (
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+              {isNum ? (
+                <span style={{
+                  width: '20px', height: '20px', minWidth: '20px', borderRadius: '50%',
+                  backgroundColor: '#FFF3E8', color: '#FF7A00',
+                  fontSize: '11px', fontWeight: 700, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  {item.index}
+                </span>
+              ) : (
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#616161', marginTop: '8px', flexShrink: 0, display: 'block' }} />
+              )}
+              {(hasDash || hasColon) ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <span style={{ fontSize: `${baseSize}px`, fontWeight: 700, color: baseColor, lineHeight: 1.5 }}>{renderInline(title!)}</span>
+                  <span style={{ fontSize: `${baseSize - 1}px`, color: '#4E5968', lineHeight: 1.7 }}>{renderInline(body)}</span>
+                </div>
+              ) : (
+                <span style={{ fontSize: `${baseSize}px`, color: baseColor, lineHeight: 1.7 }}>{renderInline(body)}</span>
+              )}
+            </div>
+          );
+        })}
       </div>
     );
     listItems = [];
@@ -85,7 +100,17 @@ export function renderMarkdown(markdown: string, opts: MdOptions = {}): ReactNod
         margin: '14px 0 6px',
         fontSize: level === 1 ? '18px' : level === 2 ? '16px' : `${baseSize + 1}px`,
       };
-      nodes.push(<p key={`h-${nodes.length}`} style={styles}>{renderInline(hm[2])}</p>);
+      if (level >= 2) {
+        nodes.push(
+          <div key={`h-${nodes.length}`} style={{ margin: '14px 0 6px' }}>
+            <span style={{ ...styles, paddingBottom: '5px', borderBottom: '3px double #FF7A00', display: 'inline' }}>
+              {renderInline(hm[2])}
+            </span>
+          </div>
+        );
+      } else {
+        nodes.push(<p key={`h-${nodes.length}`} style={styles}>{renderInline(hm[2])}</p>);
+      }
       continue;
     }
 
