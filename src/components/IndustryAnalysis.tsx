@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   ExternalLink,
-  AlertTriangle,
   Newspaper,
   BrainCircuit,
   ChevronDown,
@@ -97,18 +96,9 @@ function AccordionSection({ title, body, index }: { title: string; body: string;
 export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
   const [visibleCount, setVisibleCount] = useState(3);
   const api = data?.apiResponse ?? data ?? {};
-  const profile = api.resume_profile ?? {};
   const news = Array.isArray(api.matched_news) ? api.matched_news : [];
   const sections = parseSections(api.relevance_analysis || "");
   const visible = news.slice(0, visibleCount);
-  const vecs = news.filter(
-    (n: any) => typeof n.distance === "number" && n.distance > 0,
-  );
-  const sim = (d: number) => Math.round((1 - d) * 100);
-  const avgSim = vecs.length
-    ? vecs.reduce((s: number, n: any) => s + sim(n.distance), 0) / vecs.length
-    : 0;
-  const warn = news.length > 0 && (!vecs.length || avgSim < 70);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -212,9 +202,6 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
         {/* 뉴스 목록 */}
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           {visible.map((trend: any, idx: number) => {
-            const isVec =
-              typeof trend.distance === "number" && trend.distance > 0;
-            const similarity = isVec ? sim(trend.distance) : null;
             const rank = idx + 1;
 
             return (
@@ -261,7 +248,7 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: "6px",
+                      gap: "8px",
                       marginBottom: "4px",
                     }}
                   >
@@ -277,15 +264,9 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
                     >
                       {trend.job_category || "뉴스"}
                     </span>
-                    {similarity !== null && (
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          fontWeight: 700,
-                          color: "#4E5968",
-                        }}
-                      >
-                        {similarity}% 관련
+                    {trend.published_at && (
+                      <span style={{ fontSize: "12px", color: "#9CA3AF" }}>
+                        {toKST(trend.published_at)}
                       </span>
                     )}
                   </div>
@@ -303,26 +284,6 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
                   >
                     {trend.title || "제목 없음"}
                   </p>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "5px",
-                      marginTop: "3px",
-                    }}
-                  >
-                    <span style={{ fontSize: "12px", color: "#9CA3AF" }}>
-                      {profile.industry || trend.job_category || ""}
-                    </span>
-                    {(profile.industry || trend.job_category) && (
-                      <span style={{ fontSize: "12px", color: "#CBD5E1" }}>
-                        ·
-                      </span>
-                    )}
-                    <span style={{ fontSize: "12px", color: "#9CA3AF" }}>
-                      {toKST(trend.published_at)}
-                    </span>
-                  </div>
                 </div>
                 <ExternalLink
                   style={{
