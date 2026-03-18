@@ -95,12 +95,12 @@ function AccordionSection({ title, body, index }: { title: string; body: string;
 }
 
 export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
-  const [showAll, setShowAll] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(3);
   const api = data?.apiResponse ?? data ?? {};
   const profile = api.resume_profile ?? {};
   const news = Array.isArray(api.matched_news) ? api.matched_news : [];
   const sections = parseSections(api.relevance_analysis || "");
-  const visible = showAll ? news : news.slice(0, 3);
+  const visible = news.slice(0, visibleCount);
   const vecs = news.filter(
     (n: any) => typeof n.distance === "number" && n.distance > 0,
   );
@@ -337,21 +337,18 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
           })}
         </div>
 
-        {news.length > 3 && (
+        {visibleCount < news.length && (
           <button
             type="button"
-            onClick={() => setShowAll((p) => !p)}
+            onClick={() => setVisibleCount((prev) => Math.min(prev + 3, news.length))}
             style={{
               width: "100%",
               marginTop: "15px",
               padding: "12px",
               fontSize: "13px",
               fontWeight: 600,
-              // color: "#616161",
               color: "rgba(255, 122, 0)",
               backgroundColor: "#F8FAFC",
-              //backgroundColor: "#FFFBEB",
-              //border: "0.5px solid #FFFBEB",
               borderRadius: "12px",
               cursor: "pointer",
               display: "flex",
@@ -360,17 +357,8 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
               gap: "6px",
             }}
           >
-            {showAll ? (
-              <>
-                <ChevronUp size={15} />
-                &nbsp;접기
-              </>
-            ) : (
-              <>
-                <ChevronDown size={15} />
-                &nbsp;더보기 ({news.length - 3}건)
-              </>
-            )}
+            <ChevronDown size={15} />
+            &nbsp;더보기 ({visibleCount}/{news.length})
           </button>
         )}
       </div>
