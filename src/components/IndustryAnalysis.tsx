@@ -48,10 +48,7 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
   const news = Array.isArray(api.matched_news) ? api.matched_news : [];
   const sections = parseSections(api.relevance_analysis || '');
   const visible = showAll ? news : news.slice(0, 3);
-  const vecs = news.filter((n: any) => typeof n.distance === 'number' && n.distance > 0);
-  const sim = (d: number) => Math.round((1 - d) * 100);
-  const avgSim = vecs.length ? vecs.reduce((s: number, n: any) => s + sim(n.distance), 0) / vecs.length : 0;
-  const warn = news.length > 0 && (!vecs.length || avgSim < 70);
+  const warn = false;
 
   return (
     <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '28px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
@@ -69,36 +66,31 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
 
       {news.length === 0 && <p style={{ fontSize: '14px', color: '#616161' }}>매칭된 뉴스 데이터가 없습니다.</p>}
 
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {visible.map((trend: any, idx: number) => {
-          const isVec = typeof trend.distance === 'number' && trend.distance > 0;
-          const similarity = isVec ? sim(trend.distance) : null;
+          const rank = news.indexOf(trend) + 1;
           return (
             <a
               key={`${trend.id || idx}`}
               href={trend.url}
               target="_blank"
               rel="noreferrer"
-              style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', padding: '14px 10px', borderRadius: '10px', textDecoration: 'none', transition: 'background 0.1s' }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#F8FAFC')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '')}
+              style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', borderRadius: '10px', textDecoration: 'none', transition: 'background 0.1s, border-color 0.1s', border: '1px solid #F2F4F6', backgroundColor: '#FAFAFA' }}
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#F0F4FF'; e.currentTarget.style.borderColor = '#D0DEFF'; }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#FAFAFA'; e.currentTarget.style.borderColor = '#F2F4F6'; }}
             >
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: '14px', fontWeight: 600, color: '#2B2E34', lineHeight: 1.5, margin: 0 }}>{trend.title || '제목 없음'}</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                  <span style={{ fontSize: '12px', color: '#616161' }}>{trend.job_category || '뉴스'}</span>
-                  <span style={{ fontSize: '12px', color: '#CBD5E1' }}>·</span>
-                  <span style={{ fontSize: '12px', color: '#616161' }}>{toKST(trend.published_at)}</span>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#FF7A00', minWidth: '20px', marginTop: '2px' }}>{rank}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#2B2E34', lineHeight: 1.5, margin: 0 }}>{trend.title || '제목 없음'}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                    <span style={{ fontSize: '12px', color: '#616161' }}>{trend.job_category || '뉴스'}</span>
+                    <span style={{ fontSize: '12px', color: '#CBD5E1' }}>·</span>
+                    <span style={{ fontSize: '12px', color: '#616161' }}>{toKST(trend.published_at)}</span>
+                  </div>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                {similarity !== null ? (
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#FF7A00', backgroundColor: '#FFF3E8', padding: '3px 10px', borderRadius: '100px' }}>{similarity}%</span>
-                ) : (
-                  <span style={{ fontSize: '11px', color: '#616161', backgroundColor: '#F2F4F6', padding: '3px 10px', borderRadius: '100px' }}>키워드</span>
-                )}
-                <ExternalLink style={{ width: '14px', height: '14px', color: '#CBD5E1' }} />
-              </div>
+              <ExternalLink style={{ width: '14px', height: '14px', color: '#CBD5E1', flexShrink: 0, marginTop: '3px' }} />
             </a>
           );
         })}
