@@ -50,6 +50,11 @@ export default function App() {
 
   const handleTabClick = (tab: Tab) => {
     if (tab === activeTab) return;
+    // 업로드 탭으로 이동 시 완료된 스트리밍 clear
+    if (tab === "upload" && (streamingState?.progressPct ?? 0) >= 100) {
+      activeStreamSidRef.current = null;
+      setStreamingState(null);
+    }
     setActiveTab(tab);
   };
 

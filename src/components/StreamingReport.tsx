@@ -149,7 +149,7 @@ export function StreamingReport({ resumeProfile, matchedNews, swot, relevanceAna
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <ProgressBar pct={progressPct} label={currentLabel} elapsed={elapsedSeconds} />
+      {progressPct < 100 && <ProgressBar pct={progressPct} label={currentLabel} elapsed={elapsedSeconds} />}
 
       {resumeProfile && (
         <div style={fadeIn}>
