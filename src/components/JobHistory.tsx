@@ -568,7 +568,7 @@ export function JobHistory({
                 >
                   <span
                     style={{
-                      fontSize: "12px",
+                      fontSize: "15px",
                       color: "rgba(255,255,255,0.4)",
                       flexShrink: 0,
                     }}
@@ -577,7 +577,7 @@ export function JobHistory({
                   </span>
                   <span
                     style={{
-                      fontSize: "12px",
+                      fontSize: "14px",
                       color: item.val
                         ? "rgba(255,255,255,0.8)"
                         : "rgba(255,255,255,0.3)",
@@ -603,14 +603,14 @@ export function JobHistory({
                   display: "flex",
                   alignItems: "center",
                   gap: "6px",
-                  fontSize: "12px",
+                  fontSize: "14px",
                   color: "rgba(255,255,255,0.3)",
                 }}
               >
                 <Clock
                   style={{
-                    width: "12px",
-                    height: "12px",
+                    width: "14px",
+                    height: "14px",
                     flexShrink: 0,
                     color: "rgba(255,255,255,0.3)",
                   }}
@@ -628,7 +628,7 @@ export function JobHistory({
                 borderRadius: "10px",
                 backgroundColor: "#f97316",
                 color: "#fff",
-                fontSize: "13px",
+                fontSize: "15px",
                 fontWeight: 700,
                 border: "none",
                 cursor: isExportingDetailPdf ? "not-allowed" : "pointer",

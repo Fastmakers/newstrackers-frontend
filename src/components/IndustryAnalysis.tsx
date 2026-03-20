@@ -66,7 +66,7 @@ function AccordionSection({
     <div
       style={{
         borderRadius: "12px",
-        border: "1px solid #F2F4F6",
+        border: "2px solid #F2F4F6",
         overflow: "hidden",
       }}
     >
@@ -85,11 +85,11 @@ function AccordionSection({
           transition: "background 0.15s",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "13px" }}>
           <span
             style={{
-              width: "30px",
-              height: "30px",
+              width: "40px",
+              height: "40px",
               borderRadius: "8px",
               backgroundColor: open ? "#ffffff" : theme.bg,
               display: "flex",
@@ -99,9 +99,9 @@ function AccordionSection({
               transition: "background 0.15s",
             }}
           >
-            <Icon size={15} color={theme.color} strokeWidth={2.5} />
+            <Icon size={23} color={theme.color} strokeWidth={2} />
           </span>
-          <span style={{ fontSize: "14px", fontWeight: 700, color: "#2B2E34" }}>
+          <span style={{ fontSize: "17px", fontWeight: 700, color: "#2B2E34" }}>
             {title}
           </span>
         </div>
@@ -122,9 +122,14 @@ function AccordionSection({
           }}
         >
           {renderMarkdown(body, {
-            baseSize: 14,
+            baseSize: 16,
             baseColor: "#2B2E34",
-            numStyle: "card",
+            numStyle: title.includes("요약") ? "simple" : "card",
+            bulletAsNumber: title.includes("요약"),
+            simpleBadgeBg: theme.bg,
+            simpleBadgeColor: theme.color,
+            bulletColor: theme.color,
+            highlightBg: theme.bg,
           })}
         </div>
       )}
@@ -192,8 +197,8 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
           {news.length > 0 && (
             <span
               style={{
-                fontSize: "12px",
-                fontWeight: 700,
+                fontSize: "15px",
+                fontWeight: 600,
                 color: "#6B7280",
                 backgroundColor: "#F3F4F6",
                 padding: "4px 12px",
@@ -426,7 +431,7 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
               </p>
             </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             {sections.map((sec, i) => (
               <AccordionSection
                 key={`${sec.title}-${i}`}
