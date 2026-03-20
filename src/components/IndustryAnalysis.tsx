@@ -305,10 +305,14 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
           })}
         </div>
 
-        {visibleCount < news.length && (
+        {news.length > 3 && (
           <button
             type="button"
-            onClick={() => setVisibleCount((prev) => Math.min(prev + 3, news.length))}
+            onClick={() =>
+              setVisibleCount((prev) =>
+                prev >= news.length ? 3 : Math.min(prev + 3, news.length)
+              )
+            }
             onMouseEnter={() => setHoveredMoreBtn(true)}
             onMouseLeave={() => setHoveredMoreBtn(false)}
             style={{
@@ -329,8 +333,11 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
               transition: "all 0.15s",
             }}
           >
-            <ChevronDown size={15} />
-            &nbsp;더보기 ({visibleCount}/{news.length})
+            {visibleCount >= news.length ? (
+              <><ChevronUp size={15} />&nbsp;접기</>
+            ) : (
+              <><ChevronDown size={15} />&nbsp;더보기 ({visibleCount}/{news.length})</>
+            )}
           </button>
         )}
       </div>

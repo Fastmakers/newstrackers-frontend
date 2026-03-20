@@ -28,10 +28,10 @@ const PIPELINE_STEPS = [
 ];
 
 const card: React.CSSProperties = {
-  backgroundColor: "#0F172A",
+  backgroundColor: "#ffffff",
   borderRadius: "16px",
   padding: "24px 28px",
-  boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+  boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
 };
 
 function StatusBadge({
@@ -88,13 +88,13 @@ function DetailHeader({
   return (
     <div
       style={{
-        backgroundColor: "#0F172A",
+        backgroundColor: "#ffffff",
         borderRadius: "14px",
         padding: "16px 24px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        boxShadow: "0 1px 6px rgba(0,0,0,0.3)",
+        boxShadow: "0 1px 6px rgba(0,0,0,0.07)",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
@@ -109,7 +109,7 @@ function DetailHeader({
             cursor: "pointer",
             fontSize: "13px",
             fontWeight: 600,
-            color: "rgba(255,255,255,0.4)",
+            color: "#616161",
             padding: 0,
           }}
         >
@@ -117,7 +117,11 @@ function DetailHeader({
           분석 기록
         </button>
         <div
-          style={{ width: "1px", height: "16px", backgroundColor: "rgba(255,255,255,0.1)" }}
+          style={{
+            width: "1px",
+            height: "16px",
+            backgroundColor: "#E5E7EB",
+          }}
         />
         <div style={{ display: "flex", alignItems: "center", gap: "28px" }}>
           {[
@@ -132,7 +136,7 @@ function DetailHeader({
                 <p
                   style={{
                     fontSize: "11px",
-                    color: "rgba(255,255,255,0.4)",
+                    color: "#616161",
                     marginBottom: "1px",
                     fontWeight: 500,
                   }}
@@ -143,7 +147,7 @@ function DetailHeader({
                   style={{
                     fontSize: "14px",
                     fontWeight: 700,
-                    color: "rgba(255,255,255,0.8)",
+                    color: "#2B2E34",
                   }}
                 >
                   {item.val}
@@ -174,50 +178,97 @@ export function JobHistory({
   const progressPollRef = useRef<number | null>(null);
   const detailContentRef = useRef<HTMLDivElement | null>(null);
   const [isExportingDetailPdf, setIsExportingDetailPdf] = useState(false);
+  const [hoveredJob, setHoveredJob] = useState<string | null>(null);
 
   const handleExportDetailPdf = async (job: Job, report: Report) => {
     if (!detailContentRef.current) return;
     try {
       setIsExportingDetailPdf(true);
       const pdf = new jsPDF("p", "mm", "a4");
-      const margin = 12, pageW = 210, pageH = 297;
+      const margin = 12,
+        pageW = 210,
+        pageH = 297;
       const printW = pageW - margin * 2;
       const maxH = pageH - margin * 2;
       let curY = margin;
       let isFirstSection = true;
-      const sections = Array.from(detailContentRef.current.children) as HTMLElement[];
+      const sections = Array.from(
+        detailContentRef.current.children,
+      ) as HTMLElement[];
       for (const section of sections) {
-        const dataUrl = await toPng(section, { cacheBust: true, pixelRatio: 2, backgroundColor: "#F5F6FA" });
+        const dataUrl = await toPng(section, {
+          cacheBust: true,
+          pixelRatio: 2,
+          backgroundColor: "#F5F6FA",
+        });
         const img = await new Promise<HTMLImageElement>((res, rej) => {
-          const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = dataUrl;
+          const i = new Image();
+          i.onload = () => res(i);
+          i.onerror = rej;
+          i.src = dataUrl;
         });
         const imgH = (img.height * printW) / img.width;
-        if (!isFirstSection && curY + imgH > pageH - margin) { pdf.addPage(); curY = margin; }
+        if (!isFirstSection && curY + imgH > pageH - margin) {
+          pdf.addPage();
+          curY = margin;
+        }
         if (imgH > maxH) {
-          let remaining = imgH, srcY = 0;
+          let remaining = imgH,
+            srcY = 0;
           while (remaining > 0) {
             const sliceH = Math.min(remaining, maxH - curY + margin);
             const srcSliceH = Math.round(img.height * (sliceH / imgH));
             const canvas = document.createElement("canvas");
-            canvas.width = img.width; canvas.height = srcSliceH;
+            canvas.width = img.width;
+            canvas.height = srcSliceH;
             const ctx = canvas.getContext("2d")!;
             ctx.drawImage(img, 0, -Math.round(srcY));
-            pdf.addImage(canvas.toDataURL("image/png"), "PNG", margin, curY, printW, sliceH, undefined, "FAST");
-            srcY += srcSliceH; remaining -= sliceH; curY += sliceH;
-            if (remaining > 0) { pdf.addPage(); curY = margin; }
+            pdf.addImage(
+              canvas.toDataURL("image/png"),
+              "PNG",
+              margin,
+              curY,
+              printW,
+              sliceH,
+              undefined,
+              "FAST",
+            );
+            srcY += srcSliceH;
+            remaining -= sliceH;
+            curY += sliceH;
+            if (remaining > 0) {
+              pdf.addPage();
+              curY = margin;
+            }
           }
         } else {
-          pdf.addImage(dataUrl, "PNG", margin, curY, printW, imgH, undefined, "FAST");
+          pdf.addImage(
+            dataUrl,
+            "PNG",
+            margin,
+            curY,
+            printW,
+            imgH,
+            undefined,
+            "FAST",
+          );
           curY += imgH + 4;
         }
         isFirstSection = false;
       }
-      const slug = (v: string) => v.trim().replace(/\s+/g, "-").replace(/[^\w\-가-힣]/g, "").slice(0, 40) || "report";
+      const slug = (v: string) =>
+        v
+          .trim()
+          .replace(/\s+/g, "-")
+          .replace(/[^\w\-가-힣]/g, "")
+          .slice(0, 40) || "report";
       const burl = URL.createObjectURL(pdf.output("blob"));
       const a = document.createElement("a");
       a.href = burl;
       a.download = `${new Date().toISOString().slice(0, 10)}-${slug(job.company || "company")}-report.pdf`;
-      document.body.appendChild(a); a.click(); a.remove();
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
       window.setTimeout(() => URL.revokeObjectURL(burl), 1000);
     } catch {
       window.alert("PDF 생성 중 오류가 발생했습니다.");
@@ -326,10 +377,10 @@ export function JobHistory({
     <div
       style={{
         display: "flex",
-        backgroundColor: "#0F172A",
+        backgroundColor: "#ffffff",
         borderRadius: "12px",
         padding: "4px",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
         marginBottom: "16px",
         gap: "4px",
       }}
@@ -342,9 +393,9 @@ export function JobHistory({
           borderRadius: "9px",
           fontSize: "13px",
           fontWeight: activeSubTab === "streaming" ? 700 : 500,
-          color: activeSubTab === "streaming" ? "#ffffff" : "rgba(255,255,255,0.4)",
+          color: activeSubTab === "streaming" ? "#ffffff" : "#616161",
           backgroundColor:
-            activeSubTab === "streaming" ? "#f97316" : "transparent",
+            activeSubTab === "streaming" ? "#FF7A00" : "transparent",
           border: "none",
           cursor: "pointer",
           display: "flex",
@@ -373,8 +424,8 @@ export function JobHistory({
           borderRadius: "9px",
           fontSize: "13px",
           fontWeight: activeSubTab === "list" ? 700 : 500,
-          color: activeSubTab === "list" ? "#ffffff" : "rgba(255,255,255,0.4)",
-          backgroundColor: activeSubTab === "list" ? "rgba(255,255,255,0.1)" : "transparent",
+          color: activeSubTab === "list" ? "#2B2E34" : "#616161",
+          backgroundColor: activeSubTab === "list" ? "#F3F4F6" : "transparent",
           border: "none",
           cursor: "pointer",
           transition: "all 0.15s",
@@ -409,7 +460,7 @@ export function JobHistory({
             gap: "8px",
             marginBottom: "20px",
             fontSize: "14px",
-            color: "rgba(255,255,255,0.4)",
+            color: "#616161",
           }}
         >
           <button
@@ -417,22 +468,29 @@ export function JobHistory({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "4px",
-              background: "none",
+              justifyContent: "center",
+              width: "34px",
+              height: "34px",
+              borderRadius: "50%",
+              backgroundColor: "#F3F4F6",
               border: "none",
               cursor: "pointer",
-              fontSize: "14px",
-              color: "rgba(255,255,255,0.4)",
-              padding: 0,
-              fontWeight: 500,
+              color: "#374151",
+              flexShrink: 0,
             }}
           >
-            <ArrowLeft style={{ width: "15px", height: "15px" }} />
+            <ArrowLeft
+              style={{ width: "18px", height: "18px", strokeWidth: 2.5 }}
+            />
           </button>
-          <span>분석 기록</span>
-          <span style={{ color: "rgba(255,255,255,0.3)" }}>/</span>
-          <span style={{ color: "rgba(255,255,255,0.8)", fontWeight: 600 }}>
-            {[selectedJob.company, selectedJob.job_title].filter(Boolean).join(" · ")}
+          <span style={{ color: "#374151", fontWeight: 700, fontSize: "15px" }}>
+            분석 기록
+          </span>
+          <span style={{ color: "#CBD5E1" }}>/</span>
+          <span style={{ color: "#2B2E34", fontWeight: 600 }}>
+            {[selectedJob.company, selectedJob.job_title]
+              .filter(Boolean)
+              .join(" · ")}
           </span>
         </div>
 
@@ -474,7 +532,13 @@ export function JobHistory({
               {selectedJob.company || "기업 미입력"}
             </h2>
             {selectedJob.job_title && (
-              <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.6)", margin: "0 0 20px" }}>
+              <p
+                style={{
+                  fontSize: "14px",
+                  color: "rgba(255,255,255,0.6)",
+                  margin: "0 0 20px",
+                }}
+              >
                 {selectedJob.job_title}
               </p>
             )}
@@ -506,7 +570,13 @@ export function JobHistory({
                       gap: "8px",
                     }}
                   >
-                    <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", flexShrink: 0 }}>
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        color: "rgba(255,255,255,0.4)",
+                        flexShrink: 0,
+                      }}
+                    >
                       {item.label}
                     </span>
                     <span
@@ -539,7 +609,14 @@ export function JobHistory({
                   color: "rgba(255,255,255,0.3)",
                 }}
               >
-                <Clock style={{ width: "12px", height: "12px", flexShrink: 0, color: "rgba(255,255,255,0.3)" }} />
+                <Clock
+                  style={{
+                    width: "12px",
+                    height: "12px",
+                    flexShrink: 0,
+                    color: "rgba(255,255,255,0.3)",
+                  }}
+                />
                 {toKST(selectedReport.created_at)}
               </div>
             </div>
@@ -569,7 +646,7 @@ export function JobHistory({
               {isExportingDetailPdf ? "생성 중..." : "리포트 다운로드 (PDF)"}
             </button>
 
-            <div style={{ display: "flex", gap: "8px" }}>
+            {/* <div style={{ display: "flex", gap: "8px" }}>
               <button
                 style={{
                   flex: 1,
@@ -600,13 +677,18 @@ export function JobHistory({
               >
                 공유
               </button>
-            </div>
+            </div> */}
           </div>
 
           {/* 오른쪽 콘텐츠 */}
           <div
             ref={detailContentRef}
-            style={{ flex: 1, display: "flex", flexDirection: "column", gap: "16px" }}
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px",
+            }}
           >
             <ResumeReview data={data} />
             <IndustryAnalysis data={data} />
@@ -658,7 +740,7 @@ export function JobHistory({
                   <p
                     style={{
                       fontWeight: 700,
-                      color: "rgba(255,255,255,0.8)",
+                      color: "#2B2E34",
                       fontSize: "15px",
                     }}
                   >
@@ -667,7 +749,7 @@ export function JobHistory({
                   <p
                     style={{
                       fontSize: "12px",
-                      color: "rgba(255,255,255,0.4)",
+                      color: "#616161",
                       marginTop: "2px",
                     }}
                   >
@@ -706,7 +788,7 @@ export function JobHistory({
                 <div
                   style={{
                     height: "6px",
-                    backgroundColor: "rgba(255,255,255,0.1)",
+                    backgroundColor: "#E2E8F0",
                     borderRadius: "100px",
                     overflow: "hidden",
                   }}
@@ -778,7 +860,7 @@ export function JobHistory({
                               width: "6px",
                               height: "6px",
                               borderRadius: "50%",
-                              backgroundColor: "rgba(255,255,255,0.1)",
+                              backgroundColor: "#E2E8F0",
                               display: "block",
                             }}
                           />
@@ -788,10 +870,10 @@ export function JobHistory({
                         style={{
                           fontSize: "13px",
                           color: isDone
-                            ? "rgba(255,255,255,0.3)"
+                            ? "#CBD5E1"
                             : isActive
-                              ? "rgba(255,255,255,0.8)"
-                              : "rgba(255,255,255,0.3)",
+                              ? "#2B2E34"
+                              : "#CBD5E1",
                           fontWeight: isActive ? 600 : 400,
                           textDecoration: isDone ? "line-through" : "none",
                         }}
@@ -839,7 +921,7 @@ export function JobHistory({
             ...card,
             textAlign: "center",
             padding: "60px 28px",
-            color: "rgba(255,255,255,0.4)",
+            color: "#616161",
           }}
         >
           <Clock
@@ -847,10 +929,16 @@ export function JobHistory({
               width: "32px",
               height: "32px",
               margin: "0 auto 12px",
-              color: "rgba(255,255,255,0.3)",
+              color: "#CBD5E1",
             }}
           />
-          <p style={{ fontSize: "15px", fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>
+          <p
+            style={{
+              fontSize: "15px",
+              fontWeight: 600,
+              color: "#616161",
+            }}
+          >
             분석 기록이 없습니다
           </p>
           <p style={{ fontSize: "13px", marginTop: "6px" }}>
@@ -879,16 +967,20 @@ export function JobHistory({
               style={{
                 fontSize: "25px",
                 fontWeight: 700,
-                color: "#ffffff",
+                color: "#2B2E34",
               }}
             >
               분석 기록
             </p>
             <p
-              style={{ fontSize: "15px", color: "rgba(255,255,255,0.4)", margin: "3px 0 0" }}
+              style={{
+                fontSize: "15px",
+                color: "#9CA3AF",
+                margin: "3px 0 0",
+              }}
             >
-              총 <strong style={{ color: "rgba(255,255,255,0.8)" }}>{jobs.length}</strong>건의
-              분석 결과가 저장되어 있습니다.
+              총 <strong style={{ color: "black" }}>{jobs.length}</strong>
+              건의 분석 결과가 저장되어 있습니다.
             </p>
           </div>
           <button
@@ -901,7 +993,7 @@ export function JobHistory({
               alignItems: "center",
               gap: "5px",
               fontSize: "13px",
-              color: "rgba(255,255,255,0.4)",
+              color: "#616161",
             }}
           >
             <RefreshCw style={{ width: "14px", height: "14px" }} />
@@ -910,7 +1002,20 @@ export function JobHistory({
         </div>
 
         {jobs.map((job) => (
-          <div key={job.job_id} style={{ ...card, padding: "18px 24px" }}>
+          <div
+            key={job.job_id}
+            onMouseEnter={() => setHoveredJob(job.job_id)}
+            onMouseLeave={() => setHoveredJob(null)}
+            style={{
+              ...card,
+              padding: "18px 24px",
+              backgroundColor:
+                hoveredJob === job.job_id
+                  ? "#FFFCFA"
+                  : "#ffffff",
+              transition: "background-color 0.15s",
+            }}
+          >
             <div
               style={{
                 display: "flex",
@@ -933,7 +1038,7 @@ export function JobHistory({
                     status={job.status}
                     progress={job.progress_pct}
                   />
-                  <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)" }}>
+                  <span style={{ fontSize: "12px", color: "#616161" }}>
                     {toKST(job.created_at)}
                   </span>
                 </div>
@@ -941,7 +1046,7 @@ export function JobHistory({
                   style={{
                     fontSize: "15px",
                     fontWeight: 700,
-                    color: "#ffffff",
+                    color: "#2B2E34",
                     marginBottom: "2px",
                   }}
                 >
@@ -950,7 +1055,7 @@ export function JobHistory({
                     <span
                       style={{
                         fontWeight: 400,
-                        color: "rgba(255,255,255,0.6)",
+                        color: "#616161",
                         fontSize: "14px",
                       }}
                     >
@@ -963,18 +1068,33 @@ export function JobHistory({
                   style={{ display: "flex", alignItems: "center", gap: "8px" }}
                 >
                   {job.industry && (
-                    <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>
+                    <p
+                      style={{
+                        fontSize: "12px",
+                        color: "#616161",
+                      }}
+                    >
                       {job.industry}
                     </p>
                   )}
                   {job.career_level && (
                     <>
                       {job.industry && (
-                        <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)" }}>
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            color: "#CBD5E1",
+                          }}
+                        >
                           ·
                         </span>
                       )}
-                      <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          color: "#616161",
+                        }}
+                      >
                         {job.career_level}
                       </span>
                     </>
@@ -1004,7 +1124,7 @@ export function JobHistory({
                     <div
                       style={{
                         height: "4px",
-                        backgroundColor: "rgba(255,255,255,0.1)",
+                        backgroundColor: "#E2E8F0",
                         borderRadius: "100px",
                         overflow: "hidden",
                       }}

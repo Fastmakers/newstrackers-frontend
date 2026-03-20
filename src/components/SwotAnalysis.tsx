@@ -130,7 +130,7 @@ export function SwotAnalysis({ data }: SwotAnalysisProps) {
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "6px",
-                    border: `1.5px solid ${border}`,
+                    border: `3px solid ${border}`,
                     borderRadius: "100px",
                     padding: "4px 12px 4px 8px",
                   }}
