@@ -135,15 +135,15 @@ export function SwotAnalysis({ data }: SwotAnalysisProps) {
                     padding: "4px 12px 4px 8px",
                   }}
                 >
-                  <Icon size={14} color={border} strokeWidth={2.5} />
+                  <Icon size={20} color={border} strokeWidth={2.5} />
                   <span
-                    style={{ fontSize: "13px", fontWeight: 700, color: border }}
+                    style={{ fontSize: "17px", fontWeight: 700, color: border }}
                   >
                     {label}
                   </span>
                   <span
                     style={{
-                      fontSize: "11px",
+                      fontSize: "13px",
                       fontWeight: 700,
                       color: "#9CA3AF",
                     }}
@@ -187,7 +187,7 @@ export function SwotAnalysis({ data }: SwotAnalysisProps) {
                       />
                       <span
                         style={{
-                          fontSize: "13px",
+                          fontSize: "15px",
                           fontWeight: 600,
                           color: "#2B2E34",
                           lineHeight: 1.65,

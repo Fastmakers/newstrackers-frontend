@@ -95,7 +95,7 @@ function QuestionCard({ q }: { q: Question }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <p
             style={{
-              fontSize: "14px",
+              fontSize: "16px",
               fontWeight: 600,
               // color: "#2B2E34",
               margin: 0,
@@ -107,8 +107,8 @@ function QuestionCard({ q }: { q: Question }) {
           {q.background && (
             <p
               style={{
-                fontSize: "12px",
-                color: "#9CA3AF",
+                fontSize: "14px",
+                color: "#7F8795",
                 margin: "6px 0 0",
                 lineHeight: 1.6,
               }}
@@ -166,7 +166,7 @@ function QuestionCard({ q }: { q: Question }) {
             </div>
             <p
               style={{
-                fontSize: "12px",
+                fontSize: "14px",
                 // color: "#2B2E34",
                 lineHeight: 1.75,
                 margin: 0,

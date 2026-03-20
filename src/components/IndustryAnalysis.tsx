@@ -272,7 +272,7 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
                 {/* 순위 */}
                 <span
                   style={{
-                    fontSize: "17px",
+                    fontSize: "20px",
                     fontWeight: 700,
                     color: "#F97316",
                     // backgroundColor: "#F3F4F6",
@@ -299,7 +299,7 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
                   >
                     <span
                       style={{
-                        fontSize: "11px",
+                        fontSize: "13px",
                         fontWeight: 700,
                         color: "#F97316",
                         backgroundColor: "#FFF7ED",
@@ -311,18 +311,18 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
                       {trend.job_category || "뉴스"}
                     </span>
                     {trend.published_at && (
-                      <span style={{ fontSize: "12px", color: "#9CA3AF" }}>
+                      <span style={{ fontSize: "14px", color: "#9CA3AF" }}>
                         {toKST(trend.published_at)}
                       </span>
                     )}
                   </div>
                   <p
                     style={{
-                      fontSize: "14px",
+                      fontSize: "16px",
                       fontWeight: 600,
                       color: isHovered ? "#EA580C" : "#1F2937",
                       lineHeight: 1.45,
-                      margin: 0,
+                      marginTop: 10,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
