@@ -44,8 +44,8 @@ export default function App() {
     }
   }, [isAuthenticated]);
 
-  const handleAnalysisComplete = (data: any) => {
-    setAnalysisData(data);
+  const handleAnalysisComplete = (_data: any) => {
+    // 분석 완료 후 업로드 탭에 결과를 남기지 않음 — 결과는 분석 기록에서 확인
   };
 
   const handleTabClick = (tab: Tab) => {
