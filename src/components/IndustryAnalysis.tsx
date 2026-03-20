@@ -44,49 +44,88 @@ function toKST(iso: string) {
 }
 
 const SECTION_THEMES: { icon: LucideIcon; color: string; bg: string }[] = [
-  { icon: TrendingUp,     color: '#2563EB', bg: '#EFF6FF' },
-  { icon: Zap,            color: '#FF7A00', bg: '#FFF3E8' },
-  { icon: MessageSquare,  color: '#7C3AED', bg: '#F5F3FF' },
+  { icon: TrendingUp, color: "#2563EB", bg: "#EFF6FF" },
+  { icon: Zap, color: "#FF7A00", bg: "#FFF3E8" },
+  { icon: MessageSquare, color: "#7C3AED", bg: "#F5F3FF" },
 ];
 
-function AccordionSection({ title, body, index }: { title: string; body: string; index: number }) {
+function AccordionSection({
+  title,
+  body,
+  index,
+}: {
+  title: string;
+  body: string;
+  index: number;
+}) {
   const [open, setOpen] = useState(true);
   const theme = SECTION_THEMES[index % SECTION_THEMES.length];
   const Icon = theme.icon;
 
   return (
-    <div style={{ borderRadius: '12px', border: '1px solid #F2F4F6', overflow: 'hidden' }}>
+    <div
+      style={{
+        borderRadius: "12px",
+        border: "1px solid #F2F4F6",
+        overflow: "hidden",
+      }}
+    >
       <button
         type="button"
         onClick={() => setOpen((p) => !p)}
         style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          width: '100%', padding: '14px 18px',
-          background: open ? theme.bg : '#ffffff',
-          border: 'none', cursor: 'pointer',
-          transition: 'background 0.15s',
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          width: "100%",
+          padding: "14px 18px",
+          background: open ? theme.bg : "#ffffff",
+          border: "none",
+          cursor: "pointer",
+          transition: "background 0.15s",
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{
-            width: '30px', height: '30px', borderRadius: '8px',
-            backgroundColor: open ? '#ffffff' : theme.bg,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            transition: 'background 0.15s',
-          }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span
+            style={{
+              width: "30px",
+              height: "30px",
+              borderRadius: "8px",
+              backgroundColor: open ? "#ffffff" : theme.bg,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              transition: "background 0.15s",
+            }}
+          >
             <Icon size={15} color={theme.color} strokeWidth={2.5} />
           </span>
-          <span style={{ fontSize: '14px', fontWeight: 700, color: '#2B2E34' }}>{title}</span>
+          <span style={{ fontSize: "14px", fontWeight: 700, color: "#2B2E34" }}>
+            {title}
+          </span>
         </div>
-        {open
-          ? <ChevronUp size={16} color={theme.color} />
-          : <ChevronDown size={16} color="#9CA3AF" />
-        }
+        {open ? (
+          <ChevronUp size={16} color={theme.color} />
+        ) : (
+          <ChevronDown size={16} color="#9CA3AF" />
+        )}
       </button>
 
       {open && (
-        <div style={{ padding: '4px 18px 18px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {renderMarkdown(body, { baseSize: 14, baseColor: '#2B2E34' })}
+        <div
+          style={{
+            padding: "4px 18px 18px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "6px",
+          }}
+        >
+          {renderMarkdown(body, {
+            baseSize: 14,
+            baseColor: "#2B2E34",
+            numStyle: "card",
+          })}
         </div>
       )}
     </div>
@@ -225,16 +264,18 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
                   border: `1px solid ${isHovered ? "#FED7AA" : "#E5E7EB"}`,
                   textDecoration: "none",
                   transition: "background 0.1s, border-color 0.1s",
-                  backgroundColor: isHovered ? "rgba(255, 237, 213, 0.3)" : "#FFFFFF",
+                  backgroundColor: isHovered
+                    ? "rgba(255, 237, 213, 0.3)"
+                    : "#FFFFFF",
                 }}
               >
                 {/* 순위 */}
                 <span
                   style={{
-                    fontSize: "14px",
+                    fontSize: "17px",
                     fontWeight: 700,
-                    color: "#6B7280",
-                    backgroundColor: "#F3F4F6",
+                    color: "#F97316",
+                    // backgroundColor: "#F3F4F6",
                     flexShrink: 0,
                     width: "26px",
                     height: "26px",
@@ -310,7 +351,7 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
             type="button"
             onClick={() =>
               setVisibleCount((prev) =>
-                prev >= news.length ? 3 : Math.min(prev + 3, news.length)
+                prev >= news.length ? 3 : Math.min(prev + 3, news.length),
               )
             }
             onMouseEnter={() => setHoveredMoreBtn(true)}
@@ -334,9 +375,15 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
             }}
           >
             {visibleCount >= news.length ? (
-              <><ChevronUp size={15} />&nbsp;접기</>
+              <>
+                <ChevronUp size={15} />
+                &nbsp;접기
+              </>
             ) : (
-              <><ChevronDown size={15} />&nbsp;더보기 ({visibleCount}/{news.length})</>
+              <>
+                <ChevronDown size={15} />
+                &nbsp;더보기 ({visibleCount}/{news.length})
+              </>
             )}
           </button>
         )}

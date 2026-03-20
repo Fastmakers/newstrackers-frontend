@@ -129,31 +129,29 @@ function DetailHeader({
             { label: "직무", val: job.job_title },
             { label: "산업", val: job.industry },
             { label: "지원 유형", val: job.career_level },
-          ]
-            .filter((i) => i.val)
-            .map((item) => (
-              <div key={item.label}>
-                <p
-                  style={{
-                    fontSize: "11px",
-                    color: "#616161",
-                    marginBottom: "1px",
-                    fontWeight: 500,
-                  }}
-                >
-                  {item.label}
-                </p>
-                <p
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    color: "#2B2E34",
-                  }}
-                >
-                  {item.val}
-                </p>
-              </div>
-            ))}
+          ].map((item) => (
+            <div key={item.label}>
+              <p
+                style={{
+                  fontSize: "11px",
+                  color: "#616161",
+                  marginBottom: "1px",
+                  fontWeight: 500,
+                }}
+              >
+                {item.label}
+              </p>
+              <p
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  color: item.val ? "#2B2E34" : "#CBD5E1",
+                }}
+              >
+                {item.val || "미입력"}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
       {rightSlot}
@@ -558,39 +556,39 @@ export function JobHistory({
                 { label: "지원유형", val: selectedJob.career_level },
                 { label: "기업", val: selectedJob.company },
                 { label: "직무", val: selectedJob.job_title },
-              ]
-                .filter((i) => i.val)
-                .map((item) => (
-                  <div
-                    key={item.label}
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <span
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: "8px",
+                      fontSize: "12px",
+                      color: "rgba(255,255,255,0.4)",
+                      flexShrink: 0,
                     }}
                   >
-                    <span
-                      style={{
-                        fontSize: "12px",
-                        color: "rgba(255,255,255,0.4)",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {item.label}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: "12px",
-                        color: "rgba(255,255,255,0.8)",
-                        fontWeight: 500,
-                        textAlign: "right",
-                      }}
-                    >
-                      {item.val}
-                    </span>
-                  </div>
-                ))}
+                    {item.label}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: item.val
+                        ? "rgba(255,255,255,0.8)"
+                        : "rgba(255,255,255,0.3)",
+                      fontWeight: 500,
+                      textAlign: "right",
+                    }}
+                  >
+                    {item.val || "미입력"}
+                  </span>
+                </div>
+              ))}
             </div>
 
             <div
@@ -969,9 +967,7 @@ export function JobHistory({
                 fontWeight: 700,
                 color: "#2B2E34",
               }}
-            >
-              분석 기록
-            </p>
+            ></p>
             <p
               style={{
                 fontSize: "15px",

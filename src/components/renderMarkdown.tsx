@@ -2,7 +2,6 @@ import { Fragment, type ReactNode } from 'react';
 
 /** **bold**, *italic*, `code` 인라인 처리 */
 export function renderInline(text: string): ReactNode[] {
-  // **bold**, `code` 처리
   const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)/g);
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
@@ -19,24 +18,63 @@ export function renderInline(text: string): ReactNode[] {
 }
 
 interface MdOptions {
-  baseSize?: number;  // px, default 15
-  baseColor?: string; // default #2B2E34
+  baseSize?: number;             // px, default 15
+  baseColor?: string;            // default #2B2E34
+  numStyle?: 'circle' | 'card'; // default 'circle'
+  sectionBg?: string | ((title: string) => string | undefined); // ## 헤딩 이후 내용을 박스로 감쌈
+  sectionHeader?: (title: string) => ReactNode | undefined;     // 박스 상단에 주입할 헤더
 }
 
 /** 마크다운 블록 렌더링 (heading, list, paragraph, hr) */
 export function renderMarkdown(markdown: string, opts: MdOptions = {}): ReactNode[] {
-  const { baseSize = 15, baseColor = '#2B2E34' } = opts;
+  const { baseSize = 15, baseColor = '#2B2E34', numStyle = 'circle', sectionBg, sectionHeader } = opts;
   const lines = markdown.split('\n');
   const nodes: ReactNode[] = [];
+
+  // sectionBg 사용 시 현재 섹션 내용을 따로 수집
+  let sectionBuffer: ReactNode[] = [];
+  let inSection = false;
+  let currentSectionTitle = '';
+
+  const resolveBg = (title: string): string | undefined =>
+    typeof sectionBg === 'function' ? sectionBg(title) : sectionBg;
+
+  const target = (node: ReactNode) => {
+    if (inSection && resolveBg(currentSectionTitle)) sectionBuffer.push(node);
+    else nodes.push(node);
+  };
+
+  const flushSection = () => {
+    const bg = resolveBg(currentSectionTitle);
+    if (inSection && bg && sectionBuffer.length > 0) {
+      const header = sectionHeader?.(currentSectionTitle);
+      nodes.push(
+        <div key={`sec-box-${nodes.length}`} style={{
+          backgroundColor: bg,
+          borderRadius: '12px',
+          padding: '14px 18px',
+          marginTop: '6px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px',
+        }}>
+          {header}
+          {sectionBuffer}
+        </div>
+      );
+    }
+    sectionBuffer = [];
+  };
+
   let listItems: Array<{ text: string; numbered: boolean; index: number }> = [];
   let listCounter = 0;
 
   const flushList = () => {
     if (!listItems.length) return;
     const isNum = listItems[0].numbered;
-    const key = `list-${nodes.length}`;
-    nodes.push(
-      <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: '4px 0' }}>
+    const key = `list-${nodes.length}-${sectionBuffer.length}`;
+    const node = (
+      <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: isNum && numStyle === 'card' ? '6px' : '8px', margin: '4px 0' }}>
         {listItems.map((item, i) => {
           const dashIdx = item.text.indexOf(' — ');
           const colonIdx = dashIdx === -1 ? item.text.indexOf(': ') : -1;
@@ -44,13 +82,41 @@ export function renderMarkdown(markdown: string, opts: MdOptions = {}): ReactNod
           const hasColon = colonIdx !== -1;
           const title = hasDash ? item.text.slice(0, dashIdx) : hasColon ? item.text.slice(0, colonIdx) : null;
           const body  = hasDash ? item.text.slice(dashIdx + 3) : hasColon ? item.text.slice(colonIdx + 2) : item.text;
+
+          if (isNum && numStyle === 'card') {
+            return (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '12px 14px', borderRadius: '10px',
+                border: '1px solid #E5E7EB', backgroundColor: '#FFFFFF',
+              }}>
+                <span style={{
+                  width: '26px', height: '26px', minWidth: '26px', borderRadius: '8px',
+                  backgroundColor: '#F3F4F6', color: '#6B7280',
+                  fontSize: '13px', fontWeight: 700, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  {item.index}
+                </span>
+                {(hasDash || hasColon) ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: `${baseSize}px`, fontWeight: 700, color: '#1F2937', lineHeight: 1.5 }}>{renderInline(title!)}</span>
+                    <span style={{ fontSize: `${baseSize - 1}px`, color: '#6B7280', lineHeight: 1.6 }}>{renderInline(body)}</span>
+                  </div>
+                ) : (
+                  <span style={{ fontSize: `${baseSize}px`, color: '#1F2937', lineHeight: 1.6 }}>{renderInline(body)}</span>
+                )}
+              </div>
+            );
+          }
+
           return (
             <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
               {isNum ? (
                 <span style={{
-                  width: '20px', height: '20px', minWidth: '20px', borderRadius: '50%',
-                  backgroundColor: '#FFF3E8', color: '#FF7A00',
-                  fontSize: '11px', fontWeight: 700, display: 'flex',
+                  width: '28px', height: '28px', minWidth: '28px', borderRadius: '50%',
+                  backgroundColor: '#FF7A00', color: '#ffffff',
+                  fontSize: '13px', fontWeight: 700, display: 'flex',
                   alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
                   {item.index}
@@ -71,6 +137,7 @@ export function renderMarkdown(markdown: string, opts: MdOptions = {}): ReactNod
         })}
       </div>
     );
+    target(node);
     listItems = [];
     listCounter = 0;
   };
@@ -80,13 +147,13 @@ export function renderMarkdown(markdown: string, opts: MdOptions = {}): ReactNod
 
     if (!line) {
       flushList();
-      nodes.push(<div key={`sp-${nodes.length}`} style={{ height: '6px' }} />);
+      target(<div key={`sp-${nodes.length}-${sectionBuffer.length}`} style={{ height: '6px' }} />);
       continue;
     }
 
     if (/^---+$/.test(line)) {
       flushList();
-      nodes.push(<div key={`hr-${nodes.length}`} style={{ height: '1px', backgroundColor: '#E5E7EB', margin: '10px 0' }} />);
+      target(<div key={`hr-${nodes.length}-${sectionBuffer.length}`} style={{ height: '1px', backgroundColor: '#E5E7EB', margin: '10px 0' }} />);
       continue;
     }
 
@@ -98,17 +165,25 @@ export function renderMarkdown(markdown: string, opts: MdOptions = {}): ReactNod
         fontWeight: 700,
         color: '#2B2E34',
         margin: '14px 0 6px',
-        fontSize: level === 1 ? '18px' : level === 2 ? '16px' : `${baseSize + 1}px`,
+        fontSize: level === 1 ? '26px' : level === 2 ? '19px' : `${baseSize + 2}px`,
       };
       if (level >= 2) {
+        // 새 ## 섹션 시작 시 이전 섹션 박스 flush
+        if (sectionBg) {
+          flushSection();
+          currentSectionTitle = hm[2];
+          inSection = true;
+        }
         nodes.push(
-          <div key={`h-${nodes.length}`} style={{ margin: '14px 0 6px' }}>
-            <span style={{ ...styles, paddingBottom: '5px', borderBottom: '3px double #FF7A00', display: 'inline' }}>
+          <div key={`h-${nodes.length}`} style={{ margin: '14px 0 6px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ ...styles, margin: 0, whiteSpace: 'nowrap' }}>
               {renderInline(hm[2])}
             </span>
+            <div style={{ flex: 1, height: '2px', background: 'linear-gradient(to right, #FED7AA, transparent)' }} />
           </div>
         );
       } else {
+        if (sectionBg) { flushSection(); inSection = false; }
         nodes.push(<p key={`h-${nodes.length}`} style={styles}>{renderInline(hm[2])}</p>);
       }
       continue;
@@ -128,13 +203,14 @@ export function renderMarkdown(markdown: string, opts: MdOptions = {}): ReactNod
     }
 
     flushList();
-    nodes.push(
-      <p key={`p-${nodes.length}`} style={{ fontSize: `${baseSize}px`, color: baseColor, lineHeight: 1.75, margin: '2px 0' }}>
+    target(
+      <p key={`p-${nodes.length}-${sectionBuffer.length}`} style={{ fontSize: `${baseSize}px`, color: baseColor, lineHeight: 1.75, margin: '2px 0' }}>
         {renderInline(line)}
       </p>
     );
   }
 
   flushList();
+  flushSection();
   return nodes;
 }

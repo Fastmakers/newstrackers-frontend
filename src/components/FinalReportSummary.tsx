@@ -1,6 +1,6 @@
 import { renderMarkdown } from "./renderMarkdown";
 import { InterviewPrepCard, hasInterviewQuestions } from "./InterviewPrepCard";
-import { Award } from "lucide-react";
+import { Award, Zap } from "lucide-react";
 
 interface FinalReportSummaryProps {
   data: any;
@@ -208,6 +208,30 @@ export function FinalReportSummary({ data }: FinalReportSummaryProps) {
             {renderMarkdown(sec.content, {
               baseSize: 14,
               baseColor: "#2B2E34",
+              sectionBg: (title: string) =>
+                title.includes("차별화") ? "#FFFBEB" : undefined,
+              sectionHeader: (title: string) =>
+                title.includes("차별화") ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "7px",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    <Zap size={15} color="#FF7A00" />
+                    <span
+                      style={{
+                        fontSize: "15px",
+                        fontWeight: 700,
+                        color: "#FF7A00",
+                      }}
+                    >
+                      AI 핵심 전략
+                    </span>
+                  </div>
+                ) : undefined,
             })}
           </div>
         </div>
