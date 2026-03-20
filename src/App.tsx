@@ -190,7 +190,7 @@ export default function App() {
           borderBottom: "1px solid #E5E7EB",
         }}
       >
-        <div style={{ maxWidth: "980px", margin: "0 auto", padding: "0 28px" }}>
+        <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 28px" }}>
           <div
             style={{
               paddingTop: "20px",
@@ -328,7 +328,7 @@ export default function App() {
       {/* Main */}
       <main
         style={{
-          maxWidth: "980px",
+          maxWidth: "1280px",
           margin: "0 auto",
           padding: "28px 28px 80px",
         }}

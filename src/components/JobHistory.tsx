@@ -6,7 +6,10 @@ import {
   RefreshCw,
   ArrowLeft,
   CheckCircle2,
+  Download,
 } from "lucide-react";
+import { jsPDF } from "jspdf";
+import { toPng } from "html-to-image";
 import { getJob, getJobs, getReport, Job, Report } from "../api";
 import { ResumeReview } from "./ResumeReview";
 import { IndustryAnalysis } from "./IndustryAnalysis";
@@ -169,6 +172,59 @@ export function JobHistory({
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [progressJob, setProgressJob] = useState<Job | null>(null);
   const progressPollRef = useRef<number | null>(null);
+  const detailContentRef = useRef<HTMLDivElement | null>(null);
+  const [isExportingDetailPdf, setIsExportingDetailPdf] = useState(false);
+
+  const handleExportDetailPdf = async (job: Job, report: Report) => {
+    if (!detailContentRef.current) return;
+    try {
+      setIsExportingDetailPdf(true);
+      const pdf = new jsPDF("p", "mm", "a4");
+      const margin = 12, pageW = 210, pageH = 297;
+      const printW = pageW - margin * 2;
+      const maxH = pageH - margin * 2;
+      let curY = margin;
+      let isFirstSection = true;
+      const sections = Array.from(detailContentRef.current.children) as HTMLElement[];
+      for (const section of sections) {
+        const dataUrl = await toPng(section, { cacheBust: true, pixelRatio: 2, backgroundColor: "#F5F6FA" });
+        const img = await new Promise<HTMLImageElement>((res, rej) => {
+          const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = dataUrl;
+        });
+        const imgH = (img.height * printW) / img.width;
+        if (!isFirstSection && curY + imgH > pageH - margin) { pdf.addPage(); curY = margin; }
+        if (imgH > maxH) {
+          let remaining = imgH, srcY = 0;
+          while (remaining > 0) {
+            const sliceH = Math.min(remaining, maxH - curY + margin);
+            const srcSliceH = Math.round(img.height * (sliceH / imgH));
+            const canvas = document.createElement("canvas");
+            canvas.width = img.width; canvas.height = srcSliceH;
+            const ctx = canvas.getContext("2d")!;
+            ctx.drawImage(img, 0, -Math.round(srcY));
+            pdf.addImage(canvas.toDataURL("image/png"), "PNG", margin, curY, printW, sliceH, undefined, "FAST");
+            srcY += srcSliceH; remaining -= sliceH; curY += sliceH;
+            if (remaining > 0) { pdf.addPage(); curY = margin; }
+          }
+        } else {
+          pdf.addImage(dataUrl, "PNG", margin, curY, printW, imgH, undefined, "FAST");
+          curY += imgH + 4;
+        }
+        isFirstSection = false;
+      }
+      const slug = (v: string) => v.trim().replace(/\s+/g, "-").replace(/[^\w\-가-힣]/g, "").slice(0, 40) || "report";
+      const burl = URL.createObjectURL(pdf.output("blob"));
+      const a = document.createElement("a");
+      a.href = burl;
+      a.download = `${new Date().toISOString().slice(0, 10)}-${slug(job.company || "company")}-report.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(burl), 1000);
+    } catch {
+      window.alert("PDF 생성 중 오류가 발생했습니다.");
+    } finally {
+      setIsExportingDetailPdf(false);
+    }
+  };
 
   // 스트리밍 시작 시 스트리밍 탭으로 자동 전환, 종료 시 목록 탭으로 복귀
   useEffect(() => {
@@ -345,20 +401,218 @@ export function JobHistory({
     return (
       <div>
         {subTabBar}
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <DetailHeader
-            onBack={handleBack}
-            job={selectedJob}
-            rightSlot={
-              <span style={{ fontSize: "12px", color: "#616161" }}>
+        {/* 브레드크럼 */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            marginBottom: "20px",
+            fontSize: "14px",
+            color: "#616161",
+          }}
+        >
+          <button
+            onClick={handleBack}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontSize: "14px",
+              color: "#616161",
+              padding: 0,
+              fontWeight: 500,
+            }}
+          >
+            <ArrowLeft style={{ width: "15px", height: "15px" }} />
+          </button>
+          <span>분석 기록</span>
+          <span style={{ color: "#CBD5E1" }}>/</span>
+          <span style={{ color: "#2B2E34", fontWeight: 600 }}>
+            {[selectedJob.company, selectedJob.job_title].filter(Boolean).join(" · ")}
+          </span>
+        </div>
+
+        {/* 2컬럼 레이아웃 */}
+        <div style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
+          {/* 왼쪽 사이드바 */}
+          <div
+            style={{
+              width: "260px",
+              flexShrink: 0,
+              backgroundColor: "#2B2E34",
+              borderRadius: "16px",
+              padding: "24px 20px",
+              color: "#fff",
+              position: "sticky",
+              top: "20px",
+            }}
+          >
+            <p
+              style={{
+                fontSize: "11px",
+                color: "#9CA3AF",
+                fontWeight: 500,
+                marginBottom: "10px",
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+              }}
+            >
+              지원 정보
+            </p>
+            <h2
+              style={{
+                fontSize: "22px",
+                fontWeight: 800,
+                color: "#fff",
+                margin: "0 0 4px",
+              }}
+            >
+              {selectedJob.company || "기업 미입력"}
+            </h2>
+            {selectedJob.job_title && (
+              <p style={{ fontSize: "14px", color: "#9CA3AF", margin: "0 0 20px" }}>
+                {selectedJob.job_title}
+              </p>
+            )}
+
+            <div
+              style={{
+                borderTop: "1px solid rgba(255,255,255,0.1)",
+                paddingTop: "16px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+                marginBottom: "16px",
+              }}
+            >
+              {[
+                { label: "산업군", val: selectedJob.industry },
+                { label: "지원유형", val: selectedJob.career_level },
+                { label: "기업", val: selectedJob.company },
+                { label: "직무", val: selectedJob.job_title },
+              ]
+                .filter((i) => i.val)
+                .map((item) => (
+                  <div
+                    key={item.label}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <span style={{ fontSize: "12px", color: "#9CA3AF", flexShrink: 0 }}>
+                      {item.label}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        color: "#fff",
+                        fontWeight: 500,
+                        textAlign: "right",
+                      }}
+                    >
+                      {item.val}
+                    </span>
+                  </div>
+                ))}
+            </div>
+
+            <div
+              style={{
+                borderTop: "1px solid rgba(255,255,255,0.1)",
+                paddingTop: "14px",
+                marginBottom: "20px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontSize: "12px",
+                  color: "#9CA3AF",
+                }}
+              >
+                <Clock style={{ width: "12px", height: "12px", flexShrink: 0 }} />
                 {toKST(selectedReport.created_at)}
-              </span>
-            }
-          />
-          <ResumeReview data={data} />
-          <IndustryAnalysis data={data} />
-          <SwotAnalysis data={data} />
-          <FinalReportSummary data={data} />
+              </div>
+            </div>
+
+            <button
+              onClick={() => handleExportDetailPdf(selectedJob, selectedReport)}
+              disabled={isExportingDetailPdf}
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: "10px",
+                backgroundColor: "#2563EB",
+                color: "#fff",
+                fontSize: "13px",
+                fontWeight: 700,
+                border: "none",
+                cursor: isExportingDetailPdf ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                marginBottom: "8px",
+                opacity: isExportingDetailPdf ? 0.7 : 1,
+              }}
+            >
+              <Download style={{ width: "14px", height: "14px" }} />
+              {isExportingDetailPdf ? "생성 중..." : "리포트 다운로드 (PDF)"}
+            </button>
+
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                style={{
+                  flex: 1,
+                  padding: "9px",
+                  borderRadius: "8px",
+                  backgroundColor: "rgba(255,255,255,0.1)",
+                  color: "#fff",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                저장
+              </button>
+              <button
+                style={{
+                  flex: 1,
+                  padding: "9px",
+                  borderRadius: "8px",
+                  backgroundColor: "rgba(255,255,255,0.1)",
+                  color: "#fff",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                공유
+              </button>
+            </div>
+          </div>
+
+          {/* 오른쪽 콘텐츠 */}
+          <div
+            ref={detailContentRef}
+            style={{ flex: 1, display: "flex", flexDirection: "column", gap: "16px" }}
+          >
+            <ResumeReview data={data} />
+            <IndustryAnalysis data={data} />
+            <SwotAnalysis data={data} />
+            <FinalReportSummary data={data} />
+          </div>
         </div>
       </div>
     );
