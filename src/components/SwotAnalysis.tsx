@@ -83,7 +83,7 @@ export function SwotAnalysis({ data }: SwotAnalysisProps) {
       <div style={{ marginBottom: "22px" }}>
         <p
           style={{
-            fontSize: "11px",
+            fontSize: "15px",
             fontWeight: 700,
             color: "#9CA3AF",
             letterSpacing: "0.1em",
@@ -98,7 +98,7 @@ export function SwotAnalysis({ data }: SwotAnalysisProps) {
           <p
             style={{
               fontWeight: 700,
-              fontSize: "18px",
+              fontSize: "20px",
               color: "#2B2E34",
               margin: 0,
             }}
@@ -130,20 +130,20 @@ export function SwotAnalysis({ data }: SwotAnalysisProps) {
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "6px",
-                    border: `1.5px solid ${border}`,
+                    border: `3px solid ${border}`,
                     borderRadius: "100px",
                     padding: "4px 12px 4px 8px",
                   }}
                 >
-                  <Icon size={14} color={border} strokeWidth={2.5} />
+                  <Icon size={20} color={border} strokeWidth={2.5} />
                   <span
-                    style={{ fontSize: "13px", fontWeight: 700, color: border }}
+                    style={{ fontSize: "17px", fontWeight: 700, color: border }}
                   >
                     {label}
                   </span>
                   <span
                     style={{
-                      fontSize: "11px",
+                      fontSize: "13px",
                       fontWeight: 700,
                       color: "#9CA3AF",
                     }}
@@ -187,7 +187,7 @@ export function SwotAnalysis({ data }: SwotAnalysisProps) {
                       />
                       <span
                         style={{
-                          fontSize: "13px",
+                          fontSize: "15px",
                           fontWeight: 600,
                           color: "#2B2E34",
                           lineHeight: 1.65,

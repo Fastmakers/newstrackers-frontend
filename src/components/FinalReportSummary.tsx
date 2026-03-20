@@ -1,6 +1,6 @@
 import { renderMarkdown } from "./renderMarkdown";
 import { InterviewPrepCard, hasInterviewQuestions } from "./InterviewPrepCard";
-import { Award } from "lucide-react";
+import { Award, Zap } from "lucide-react";
 
 interface FinalReportSummaryProps {
   data: any;
@@ -148,7 +148,7 @@ export function FinalReportSummary({ data }: FinalReportSummaryProps) {
           >
             <p
               style={{
-                fontSize: "11px",
+                fontSize: "15px",
                 fontWeight: 700,
                 color: "rgba(255,255,255,0.6)",
                 letterSpacing: "0.1em",
@@ -161,8 +161,8 @@ export function FinalReportSummary({ data }: FinalReportSummaryProps) {
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <div
                 style={{
-                  width: "34px",
-                  height: "34px",
+                  width: "48px",
+                  height: "48px",
                   borderRadius: "10px",
                   backgroundColor: "rgba(255,255,255,0.15)",
                   display: "flex",
@@ -170,13 +170,13 @@ export function FinalReportSummary({ data }: FinalReportSummaryProps) {
                   justifyContent: "center",
                 }}
               >
-                <Award size={18} color="#ffffff" />
+                <Award size={25} color="#ffffff" />
               </div>
               <div>
                 <p
                   style={{
                     fontWeight: 700,
-                    fontSize: "18px",
+                    fontSize: "20px",
                     color: "#ffffff",
                     margin: 0,
                   }}
@@ -185,8 +185,10 @@ export function FinalReportSummary({ data }: FinalReportSummaryProps) {
                 </p>
                 <p
                   style={{
-                    fontSize: "12px",
-                    color: "rgba(255,255,255,0.65)",
+                    fontSize: "16px",
+                    // color: "rgba(255,255,255,0.65)",
+                    fontWeight: 500,
+                    color: "black",
                     margin: "2px 0 0",
                   }}
                 >
@@ -206,8 +208,32 @@ export function FinalReportSummary({ data }: FinalReportSummaryProps) {
             }}
           >
             {renderMarkdown(sec.content, {
-              baseSize: 14,
+              baseSize: 18,
               baseColor: "#2B2E34",
+              sectionBg: (title: string) =>
+                title.includes("차별화") ? "#FFFBEB" : undefined,
+              sectionHeader: (title: string) =>
+                title.includes("차별화") ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "7px",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    <Zap size={15} color="#FF7A00" />
+                    <span
+                      style={{
+                        fontSize: "15px",
+                        fontWeight: 700,
+                        color: "#FF7A00",
+                      }}
+                    >
+                      AI 핵심 전략
+                    </span>
+                  </div>
+                ) : undefined,
             })}
           </div>
         </div>

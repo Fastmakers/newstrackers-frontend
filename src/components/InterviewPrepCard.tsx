@@ -95,7 +95,7 @@ function QuestionCard({ q }: { q: Question }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <p
             style={{
-              fontSize: "14px",
+              fontSize: "16px",
               fontWeight: 600,
               // color: "#2B2E34",
               margin: 0,
@@ -107,8 +107,8 @@ function QuestionCard({ q }: { q: Question }) {
           {q.background && (
             <p
               style={{
-                fontSize: "12px",
-                color: "#9CA3AF",
+                fontSize: "14px",
+                color: "#7F8795",
                 margin: "6px 0 0",
                 lineHeight: 1.6,
               }}
@@ -166,7 +166,7 @@ function QuestionCard({ q }: { q: Question }) {
             </div>
             <p
               style={{
-                fontSize: "12px",
+                fontSize: "14px",
                 // color: "#2B2E34",
                 lineHeight: 1.75,
                 margin: 0,
@@ -201,7 +201,7 @@ export function InterviewPrepCard({ content }: { content: string }) {
       <div style={{ marginBottom: "20px" }}>
         <p
           style={{
-            fontSize: "11px",
+            fontSize: "15px",
             fontWeight: 700,
             color: "#9CA3AF",
             letterSpacing: "0.1em",
@@ -212,11 +212,11 @@ export function InterviewPrepCard({ content }: { content: string }) {
           INTERVIEW PREP
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ fontSize: "18px" }}>🗒️</span>
+          <span style={{ fontSize: "20px" }}>🗒️</span>
           <p
             style={{
               fontWeight: 700,
-              fontSize: "18px",
+              fontSize: "20px",
               color: "#2B2E34",
               margin: 0,
             }}

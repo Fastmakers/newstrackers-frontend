@@ -9,7 +9,7 @@ import { CheckCircle2, ExternalLink, Loader2 } from 'lucide-react';
 import { ResumeReview } from './ResumeReview';
 import { SwotAnalysis } from './SwotAnalysis';
 import { IndustryAnalysis } from './IndustryAnalysis';
-import { renderMarkdown } from './renderMarkdown';
+import { FinalReportSummary } from './FinalReportSummary';
 
 export interface StreamingState {
   resumeProfile?: any;
@@ -135,29 +135,6 @@ function MatchedNewsSection({ news }: { news: any[] }) {
   );
 }
 
-function StreamingFinalReport({ text }: { text: string }) {
-  const hasContent = text.trim().length > 0;
-  return (
-    <div style={{ ...fadeIn, backgroundColor: '#ffffff', borderRadius: '14px', padding: '28px', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
-        <p style={{ fontWeight: 700, fontSize: '17px', color: '#2B2E34', margin: 0 }}>면접 준비 리포트</p>
-        {hasContent && (
-          <span style={{ display: 'inline-block', width: '2px', height: '18px', backgroundColor: '#FF7A00', animation: 'blink 1s step-end infinite' }} />
-        )}
-      </div>
-      {hasContent ? (
-        <div style={{ fontSize: '14px', color: '#2B2E34', lineHeight: 1.8 }}>
-          {renderMarkdown(text)}
-        </div>
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#616161' }}>
-          <Loader2 style={{ width: '16px', height: '16px' }} className="animate-spin" />
-          <span style={{ fontSize: '13px' }}>리포트 생성 중...</span>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export function StreamingReport({ resumeProfile, matchedNews, swot, relevanceAnalysis, finalReportText, progressPct, currentLabel, elapsedSeconds, uploadedFileName }: StreamingState) {
   // 기존 컴포넌트에 전달할 data 래퍼
@@ -172,17 +149,11 @@ export function StreamingReport({ resumeProfile, matchedNews, swot, relevanceAna
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <ProgressBar pct={progressPct} label={currentLabel} elapsed={elapsedSeconds} />
+      {progressPct < 100 && <ProgressBar pct={progressPct} label={currentLabel} elapsed={elapsedSeconds} />}
 
       {resumeProfile && (
         <div style={fadeIn}>
           <ResumeReview data={partialData} />
-        </div>
-      )}
-
-      {swot && (Object.values(swot).some((v: any) => Array.isArray(v) && v.length > 0)) && (
-        <div style={fadeIn}>
-          <SwotAnalysis data={partialData} />
         </div>
       )}
 
@@ -192,8 +163,25 @@ export function StreamingReport({ resumeProfile, matchedNews, swot, relevanceAna
         </div>
       ) : null}
 
+      {swot && (Object.values(swot).some((v: any) => Array.isArray(v) && v.length > 0)) && (
+        <div style={fadeIn}>
+          <SwotAnalysis data={partialData} />
+        </div>
+      )}
+
       {progressPct >= 80 && (
-        <StreamingFinalReport text={finalReportText} />
+        finalReportText.trim().length > 0 ? (
+          <div style={fadeIn}>
+            <FinalReportSummary data={partialData} />
+          </div>
+        ) : (
+          <div style={{ ...fadeIn, backgroundColor: '#ffffff', borderRadius: '14px', padding: '28px', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#616161' }}>
+              <Loader2 style={{ width: '16px', height: '16px' }} className="animate-spin" />
+              <span style={{ fontSize: '13px' }}>리포트 생성 중...</span>
+            </div>
+          </div>
+        )
       )}
     </div>
   );

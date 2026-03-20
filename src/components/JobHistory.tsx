@@ -6,7 +6,10 @@ import {
   RefreshCw,
   ArrowLeft,
   CheckCircle2,
+  Download,
 } from "lucide-react";
+import { jsPDF } from "jspdf";
+import { toPng } from "html-to-image";
 import { getJob, getJobs, getReport, Job, Report } from "../api";
 import { ResumeReview } from "./ResumeReview";
 import { IndustryAnalysis } from "./IndustryAnalysis";
@@ -114,7 +117,11 @@ function DetailHeader({
           분석 기록
         </button>
         <div
-          style={{ width: "1px", height: "16px", backgroundColor: "#E5E7EB" }}
+          style={{
+            width: "1px",
+            height: "16px",
+            backgroundColor: "#E5E7EB",
+          }}
         />
         <div style={{ display: "flex", alignItems: "center", gap: "28px" }}>
           {[
@@ -122,31 +129,29 @@ function DetailHeader({
             { label: "직무", val: job.job_title },
             { label: "산업", val: job.industry },
             { label: "지원 유형", val: job.career_level },
-          ]
-            .filter((i) => i.val)
-            .map((item) => (
-              <div key={item.label}>
-                <p
-                  style={{
-                    fontSize: "11px",
-                    color: "#616161",
-                    marginBottom: "1px",
-                    fontWeight: 500,
-                  }}
-                >
-                  {item.label}
-                </p>
-                <p
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    color: "#2B2E34",
-                  }}
-                >
-                  {item.val}
-                </p>
-              </div>
-            ))}
+          ].map((item) => (
+            <div key={item.label}>
+              <p
+                style={{
+                  fontSize: "11px",
+                  color: "#616161",
+                  marginBottom: "1px",
+                  fontWeight: 500,
+                }}
+              >
+                {item.label}
+              </p>
+              <p
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  color: item.val ? "#2B2E34" : "#CBD5E1",
+                }}
+              >
+                {item.val || "미입력"}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
       {rightSlot}
@@ -158,8 +163,10 @@ type HistoryTab = "streaming" | "list";
 
 export function JobHistory({
   streamingState,
+  onExitStreaming,
 }: {
   streamingState?: StreamingState | null;
+  onExitStreaming?: () => void;
 }) {
   const [activeSubTab, setActiveSubTab] = useState<HistoryTab>("list");
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -169,6 +176,106 @@ export function JobHistory({
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [progressJob, setProgressJob] = useState<Job | null>(null);
   const progressPollRef = useRef<number | null>(null);
+  const detailContentRef = useRef<HTMLDivElement | null>(null);
+  const [isExportingDetailPdf, setIsExportingDetailPdf] = useState(false);
+  const [hoveredJob, setHoveredJob] = useState<string | null>(null);
+
+  const handleExportDetailPdf = async (job: Job, report: Report) => {
+    if (!detailContentRef.current) return;
+    try {
+      setIsExportingDetailPdf(true);
+      const pdf = new jsPDF("p", "mm", "a4");
+      const margin = 12,
+        pageW = 210,
+        pageH = 297;
+      const printW = pageW - margin * 2;
+      const maxH = pageH - margin * 2;
+      let curY = margin;
+      let isFirstSection = true;
+      const sections = Array.from(
+        detailContentRef.current.children,
+      ) as HTMLElement[];
+      for (const section of sections) {
+        const dataUrl = await toPng(section, {
+          cacheBust: true,
+          pixelRatio: 2,
+          backgroundColor: "#F5F6FA",
+        });
+        const img = await new Promise<HTMLImageElement>((res, rej) => {
+          const i = new Image();
+          i.onload = () => res(i);
+          i.onerror = rej;
+          i.src = dataUrl;
+        });
+        const imgH = (img.height * printW) / img.width;
+        if (!isFirstSection && curY + imgH > pageH - margin) {
+          pdf.addPage();
+          curY = margin;
+        }
+        if (imgH > maxH) {
+          let remaining = imgH,
+            srcY = 0;
+          while (remaining > 0) {
+            const sliceH = Math.min(remaining, maxH - curY + margin);
+            const srcSliceH = Math.round(img.height * (sliceH / imgH));
+            const canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = srcSliceH;
+            const ctx = canvas.getContext("2d")!;
+            ctx.drawImage(img, 0, -Math.round(srcY));
+            pdf.addImage(
+              canvas.toDataURL("image/png"),
+              "PNG",
+              margin,
+              curY,
+              printW,
+              sliceH,
+              undefined,
+              "FAST",
+            );
+            srcY += srcSliceH;
+            remaining -= sliceH;
+            curY += sliceH;
+            if (remaining > 0) {
+              pdf.addPage();
+              curY = margin;
+            }
+          }
+        } else {
+          pdf.addImage(
+            dataUrl,
+            "PNG",
+            margin,
+            curY,
+            printW,
+            imgH,
+            undefined,
+            "FAST",
+          );
+          curY += imgH + 4;
+        }
+        isFirstSection = false;
+      }
+      const slug = (v: string) =>
+        v
+          .trim()
+          .replace(/\s+/g, "-")
+          .replace(/[^\w\-가-힣]/g, "")
+          .slice(0, 40) || "report";
+      const burl = URL.createObjectURL(pdf.output("blob"));
+      const a = document.createElement("a");
+      a.href = burl;
+      a.download = `${new Date().toISOString().slice(0, 10)}-${slug(job.company || "company")}-report.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(burl), 1000);
+    } catch {
+      window.alert("PDF 생성 중 오류가 발생했습니다.");
+    } finally {
+      setIsExportingDetailPdf(false);
+    }
+  };
 
   // 스트리밍 시작 시 스트리밍 탭으로 자동 전환, 종료 시 목록 탭으로 복귀
   useEffect(() => {
@@ -298,11 +405,12 @@ export function JobHistory({
           transition: "all 0.15s",
         }}
       >
-        <Loader2
-          style={{ width: "13px", height: "13px" }}
-          className="animate-spin"
-        />
-        분석 중
+        {streamingState.progressPct >= 100 ? (
+          <CheckCircle2 style={{ width: "13px", height: "13px" }} />
+        ) : (
+          <Loader2 style={{ width: "13px", height: "13px" }} className="animate-spin" />
+        )}
+        {streamingState.progressPct >= 100 ? "분석 완료" : "분석 중"}
         {streamingState.resumeProfile?.company && (
           <span style={{ fontWeight: 400, opacity: 0.85 }}>
             · {streamingState.resumeProfile.company}
@@ -310,7 +418,13 @@ export function JobHistory({
         )}
       </button>
       <button
-        onClick={() => setActiveSubTab("list")}
+        onClick={() => {
+          if (streamingState.progressPct >= 100) {
+            onExitStreaming?.();
+          } else {
+            setActiveSubTab("list");
+          }
+        }}
         style={{
           flex: 1,
           padding: "9px 16px",
@@ -345,20 +459,249 @@ export function JobHistory({
     return (
       <div>
         {subTabBar}
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <DetailHeader
-            onBack={handleBack}
-            job={selectedJob}
-            rightSlot={
-              <span style={{ fontSize: "12px", color: "#616161" }}>
+        {/* 브레드크럼 */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            marginBottom: "20px",
+            fontSize: "14px",
+            color: "#616161",
+          }}
+        >
+          <button
+            onClick={handleBack}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "34px",
+              height: "34px",
+              borderRadius: "50%",
+              backgroundColor: "#F3F4F6",
+              border: "none",
+              cursor: "pointer",
+              color: "#374151",
+              flexShrink: 0,
+            }}
+          >
+            <ArrowLeft
+              style={{ width: "18px", height: "18px", strokeWidth: 2.5 }}
+            />
+          </button>
+          <span style={{ color: "#374151", fontWeight: 700, fontSize: "15px" }}>
+            분석 기록
+          </span>
+          <span style={{ color: "#CBD5E1" }}>/</span>
+          <span style={{ color: "#2B2E34", fontWeight: 600 }}>
+            {[selectedJob.company, selectedJob.job_title]
+              .filter(Boolean)
+              .join(" · ")}
+          </span>
+        </div>
+
+        {/* 2컬럼 레이아웃 */}
+        <div style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
+          {/* 왼쪽 사이드바 */}
+          <div
+            style={{
+              width: "260px",
+              flexShrink: 0,
+              backgroundColor: "#0F172A",
+              borderRadius: "16px",
+              padding: "24px 20px",
+              color: "#fff",
+              position: "sticky",
+              top: "20px",
+            }}
+          >
+            <p
+              style={{
+                fontSize: "11px",
+                color: "rgba(255,255,255,0.4)",
+                fontWeight: 500,
+                marginBottom: "10px",
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+              }}
+            >
+              지원 정보
+            </p>
+            <h2
+              style={{
+                fontSize: "22px",
+                fontWeight: 800,
+                color: "#ffffff",
+                margin: "0 0 4px",
+              }}
+            >
+              {selectedJob.company || "기업 미입력"}
+            </h2>
+            {selectedJob.job_title && (
+              <p
+                style={{
+                  fontSize: "14px",
+                  color: "rgba(255,255,255,0.6)",
+                  margin: "0 0 20px",
+                }}
+              >
+                {selectedJob.job_title}
+              </p>
+            )}
+
+            <div
+              style={{
+                borderTop: "1px solid rgba(255,255,255,0.1)",
+                paddingTop: "16px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+                marginBottom: "16px",
+              }}
+            >
+              {[
+                { label: "산업군", val: selectedJob.industry },
+                { label: "지원유형", val: selectedJob.career_level },
+                { label: "기업", val: selectedJob.company },
+                { label: "직무", val: selectedJob.job_title },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "15px",
+                      color: "rgba(255,255,255,0.4)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "14px",
+                      color: item.val
+                        ? "rgba(255,255,255,0.8)"
+                        : "rgba(255,255,255,0.3)",
+                      fontWeight: 500,
+                      textAlign: "right",
+                    }}
+                  >
+                    {item.val || "미입력"}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div
+              style={{
+                borderTop: "1px solid rgba(255,255,255,0.1)",
+                paddingTop: "14px",
+                marginBottom: "20px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontSize: "14px",
+                  color: "rgba(255,255,255,0.3)",
+                }}
+              >
+                <Clock
+                  style={{
+                    width: "14px",
+                    height: "14px",
+                    flexShrink: 0,
+                    color: "rgba(255,255,255,0.3)",
+                  }}
+                />
                 {toKST(selectedReport.created_at)}
-              </span>
-            }
-          />
-          <ResumeReview data={data} />
-          <IndustryAnalysis data={data} />
-          <SwotAnalysis data={data} />
-          <FinalReportSummary data={data} />
+              </div>
+            </div>
+
+            <button
+              onClick={() => handleExportDetailPdf(selectedJob, selectedReport)}
+              disabled={isExportingDetailPdf}
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: "10px",
+                backgroundColor: "#f97316",
+                color: "#fff",
+                fontSize: "15px",
+                fontWeight: 700,
+                border: "none",
+                cursor: isExportingDetailPdf ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                marginBottom: "8px",
+                opacity: isExportingDetailPdf ? 0.7 : 1,
+              }}
+            >
+              <Download style={{ width: "14px", height: "14px" }} />
+              {isExportingDetailPdf ? "생성 중..." : "리포트 다운로드 (PDF)"}
+            </button>
+
+            {/* <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                style={{
+                  flex: 1,
+                  padding: "9px",
+                  borderRadius: "8px",
+                  backgroundColor: "rgba(255,255,255,0.1)",
+                  color: "rgba(255,255,255,0.7)",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                저장
+              </button>
+              <button
+                style={{
+                  flex: 1,
+                  padding: "9px",
+                  borderRadius: "8px",
+                  backgroundColor: "rgba(255,255,255,0.1)",
+                  color: "rgba(255,255,255,0.7)",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                공유
+              </button>
+            </div> */}
+          </div>
+
+          {/* 오른쪽 콘텐츠 */}
+          <div
+            ref={detailContentRef}
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px",
+            }}
+          >
+            <ResumeReview data={data} />
+            <IndustryAnalysis data={data} />
+            <SwotAnalysis data={data} />
+            <FinalReportSummary data={data} />
+          </div>
         </div>
       </div>
     );
@@ -395,7 +738,7 @@ export function JobHistory({
                   style={{
                     width: "20px",
                     height: "20px",
-                    color: "#FF7A00",
+                    color: "#f97316",
                     flexShrink: 0,
                   }}
                   className="animate-spin"
@@ -434,7 +777,7 @@ export function JobHistory({
                     style={{
                       fontSize: "13px",
                       fontWeight: 600,
-                      color: "#E56E00",
+                      color: "#fb923c",
                     }}
                   >
                     {currentStep.label}
@@ -443,7 +786,7 @@ export function JobHistory({
                     style={{
                       fontSize: "13px",
                       fontWeight: 700,
-                      color: "#FF7A00",
+                      color: "#f97316",
                     }}
                   >
                     {pct}%
@@ -461,7 +804,7 @@ export function JobHistory({
                     style={{
                       height: "100%",
                       width: `${pct}%`,
-                      backgroundColor: "#FF7A00",
+                      backgroundColor: "#f97316",
                       borderRadius: "100px",
                       transition: "width 0.6s ease",
                     }}
@@ -503,7 +846,7 @@ export function JobHistory({
                           style={{
                             width: "16px",
                             height: "16px",
-                            color: "#FF7A00",
+                            color: "#f97316",
                             flexShrink: 0,
                           }}
                           className="animate-spin"
@@ -568,7 +911,7 @@ export function JobHistory({
           }}
         >
           <Loader2
-            style={{ width: "24px", height: "24px", color: "#FF7A00" }}
+            style={{ width: "24px", height: "24px", color: "#f97316" }}
             className="animate-spin"
           />
         </div>
@@ -596,7 +939,13 @@ export function JobHistory({
               color: "#CBD5E1",
             }}
           />
-          <p style={{ fontSize: "15px", fontWeight: 600, color: "#616161" }}>
+          <p
+            style={{
+              fontSize: "15px",
+              fontWeight: 600,
+              color: "#616161",
+            }}
+          >
             분석 기록이 없습니다
           </p>
           <p style={{ fontSize: "13px", marginTop: "6px" }}>
@@ -627,14 +976,16 @@ export function JobHistory({
                 fontWeight: 700,
                 color: "#2B2E34",
               }}
-            >
-              분석 기록
-            </p>
+            ></p>
             <p
-              style={{ fontSize: "15px", color: "#9CA3AF", margin: "3px 0 0" }}
+              style={{
+                fontSize: "15px",
+                color: "#9CA3AF",
+                margin: "3px 0 0",
+              }}
             >
-              총 <strong style={{ color: "black" }}>{jobs.length}</strong>건의
-              분석 결과가 저장되어 있습니다.
+              총 <strong style={{ color: "black" }}>{jobs.length}</strong>
+              건의 분석 결과가 저장되어 있습니다.
             </p>
           </div>
           <button
@@ -656,7 +1007,18 @@ export function JobHistory({
         </div>
 
         {jobs.map((job) => (
-          <div key={job.job_id} style={{ ...card, padding: "18px 24px" }}>
+          <div
+            key={job.job_id}
+            onMouseEnter={() => setHoveredJob(job.job_id)}
+            onMouseLeave={() => setHoveredJob(null)}
+            style={{
+              ...card,
+              padding: "18px 24px",
+              backgroundColor:
+                hoveredJob === job.job_id ? "#FFFCFA" : "#ffffff",
+              transition: "background-color 0.15s",
+            }}
+          >
             <div
               style={{
                 display: "flex",
@@ -709,18 +1071,33 @@ export function JobHistory({
                   style={{ display: "flex", alignItems: "center", gap: "8px" }}
                 >
                   {job.industry && (
-                    <p style={{ fontSize: "12px", color: "#616161" }}>
+                    <p
+                      style={{
+                        fontSize: "12px",
+                        color: "#616161",
+                      }}
+                    >
                       {job.industry}
                     </p>
                   )}
                   {job.career_level && (
                     <>
                       {job.industry && (
-                        <span style={{ fontSize: "12px", color: "#CBD5E1" }}>
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            color: "#CBD5E1",
+                          }}
+                        >
                           ·
                         </span>
                       )}
-                      <span style={{ fontSize: "12px", color: "#616161" }}>
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          color: "#616161",
+                        }}
+                      >
                         {job.career_level}
                       </span>
                     </>
@@ -740,7 +1117,7 @@ export function JobHistory({
                       <span
                         style={{
                           fontSize: "12px",
-                          color: "#FF7A00",
+                          color: "#f97316",
                           fontWeight: 600,
                         }}
                       >
@@ -759,7 +1136,7 @@ export function JobHistory({
                         style={{
                           height: "100%",
                           width: `${job.progress_pct}%`,
-                          backgroundColor: "#FF7A00",
+                          backgroundColor: "#f97316",
                           borderRadius: "100px",
                           transition: "width 0.5s",
                         }}
@@ -827,8 +1204,8 @@ export function JobHistory({
                       borderRadius: "10px",
                       fontSize: "13px",
                       fontWeight: 600,
-                      color: "#E56E00",
-                      backgroundColor: "#FFE4C4",
+                      color: "#fdba74",
+                      backgroundColor: "rgba(249,115,22,0.2)",
                       border: "none",
                       cursor: "pointer",
                     }}

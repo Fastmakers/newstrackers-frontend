@@ -44,12 +44,17 @@ export default function App() {
     }
   }, [isAuthenticated]);
 
-  const handleAnalysisComplete = (data: any) => {
-    setAnalysisData(data);
+  const handleAnalysisComplete = (_data: any) => {
+    // 분석 완료 후 업로드 탭에 결과를 남기지 않음 — 결과는 분석 기록에서 확인
   };
 
   const handleTabClick = (tab: Tab) => {
     if (tab === activeTab) return;
+    // 업로드 탭으로 이동 시 완료된 스트리밍 clear
+    if (tab === "upload" && (streamingState?.progressPct ?? 0) >= 100) {
+      activeStreamSidRef.current = null;
+      setStreamingState(null);
+    }
     setActiveTab(tab);
   };
 
@@ -190,7 +195,9 @@ export default function App() {
           borderBottom: "1px solid #E5E7EB",
         }}
       >
-        <div style={{ maxWidth: "980px", margin: "0 auto", padding: "0 28px" }}>
+        <div
+          style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 28px" }}
+        >
           <div
             style={{
               paddingTop: "20px",
@@ -242,14 +249,14 @@ export default function App() {
                   >
                     <User
                       style={{
-                        width: "15px",
-                        height: "15px",
+                        width: "27px",
+                        height: "27px",
                         color: "#616161",
                       }}
                     />
                     <span
                       style={{
-                        fontSize: "13px",
+                        fontSize: "17px",
                         fontWeight: 600,
                         color: "#2B2E34",
                       }}
@@ -328,7 +335,7 @@ export default function App() {
       {/* Main */}
       <main
         style={{
-          maxWidth: "980px",
+          maxWidth: "1280px",
           margin: "0 auto",
           padding: "28px 28px 80px",
         }}
@@ -503,7 +510,13 @@ export default function App() {
         {/* 분석기록 탭 */}
         <div style={{ display: activeTab === "history" ? "block" : "none" }}>
           {isAuthenticated || streamingState ? (
-            <JobHistory streamingState={streamingState} />
+            <JobHistory
+            streamingState={streamingState}
+            onExitStreaming={() => {
+              activeStreamSidRef.current = null;
+              setStreamingState(null);
+            }}
+          />
           ) : (
             <div style={{ textAlign: "center", padding: "60px 0" }}>
               <p
