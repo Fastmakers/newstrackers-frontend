@@ -28,10 +28,10 @@ const PIPELINE_STEPS = [
 ];
 
 const card: React.CSSProperties = {
-  backgroundColor: "#ffffff",
+  backgroundColor: "#0F172A",
   borderRadius: "16px",
   padding: "24px 28px",
-  boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+  boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
 };
 
 function StatusBadge({
@@ -88,13 +88,13 @@ function DetailHeader({
   return (
     <div
       style={{
-        backgroundColor: "#ffffff",
+        backgroundColor: "#0F172A",
         borderRadius: "14px",
         padding: "16px 24px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        boxShadow: "0 1px 6px rgba(0,0,0,0.07)",
+        boxShadow: "0 1px 6px rgba(0,0,0,0.3)",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
@@ -109,7 +109,7 @@ function DetailHeader({
             cursor: "pointer",
             fontSize: "13px",
             fontWeight: 600,
-            color: "#616161",
+            color: "rgba(255,255,255,0.4)",
             padding: 0,
           }}
         >
@@ -117,7 +117,7 @@ function DetailHeader({
           분석 기록
         </button>
         <div
-          style={{ width: "1px", height: "16px", backgroundColor: "#E5E7EB" }}
+          style={{ width: "1px", height: "16px", backgroundColor: "rgba(255,255,255,0.1)" }}
         />
         <div style={{ display: "flex", alignItems: "center", gap: "28px" }}>
           {[
@@ -132,7 +132,7 @@ function DetailHeader({
                 <p
                   style={{
                     fontSize: "11px",
-                    color: "#616161",
+                    color: "rgba(255,255,255,0.4)",
                     marginBottom: "1px",
                     fontWeight: 500,
                   }}
@@ -143,7 +143,7 @@ function DetailHeader({
                   style={{
                     fontSize: "14px",
                     fontWeight: 700,
-                    color: "#2B2E34",
+                    color: "rgba(255,255,255,0.8)",
                   }}
                 >
                   {item.val}
@@ -326,10 +326,10 @@ export function JobHistory({
     <div
       style={{
         display: "flex",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#0F172A",
         borderRadius: "12px",
         padding: "4px",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
         marginBottom: "16px",
         gap: "4px",
       }}
@@ -342,9 +342,9 @@ export function JobHistory({
           borderRadius: "9px",
           fontSize: "13px",
           fontWeight: activeSubTab === "streaming" ? 700 : 500,
-          color: activeSubTab === "streaming" ? "#ffffff" : "#616161",
+          color: activeSubTab === "streaming" ? "#ffffff" : "rgba(255,255,255,0.4)",
           backgroundColor:
-            activeSubTab === "streaming" ? "#FF7A00" : "transparent",
+            activeSubTab === "streaming" ? "#f97316" : "transparent",
           border: "none",
           cursor: "pointer",
           display: "flex",
@@ -373,8 +373,8 @@ export function JobHistory({
           borderRadius: "9px",
           fontSize: "13px",
           fontWeight: activeSubTab === "list" ? 700 : 500,
-          color: activeSubTab === "list" ? "#2B2E34" : "#616161",
-          backgroundColor: activeSubTab === "list" ? "#F3F4F6" : "transparent",
+          color: activeSubTab === "list" ? "#ffffff" : "rgba(255,255,255,0.4)",
+          backgroundColor: activeSubTab === "list" ? "rgba(255,255,255,0.1)" : "transparent",
           border: "none",
           cursor: "pointer",
           transition: "all 0.15s",
@@ -409,7 +409,7 @@ export function JobHistory({
             gap: "8px",
             marginBottom: "20px",
             fontSize: "14px",
-            color: "#616161",
+            color: "rgba(255,255,255,0.4)",
           }}
         >
           <button
@@ -422,7 +422,7 @@ export function JobHistory({
               border: "none",
               cursor: "pointer",
               fontSize: "14px",
-              color: "#616161",
+              color: "rgba(255,255,255,0.4)",
               padding: 0,
               fontWeight: 500,
             }}
@@ -430,8 +430,8 @@ export function JobHistory({
             <ArrowLeft style={{ width: "15px", height: "15px" }} />
           </button>
           <span>분석 기록</span>
-          <span style={{ color: "#CBD5E1" }}>/</span>
-          <span style={{ color: "#2B2E34", fontWeight: 600 }}>
+          <span style={{ color: "rgba(255,255,255,0.3)" }}>/</span>
+          <span style={{ color: "rgba(255,255,255,0.8)", fontWeight: 600 }}>
             {[selectedJob.company, selectedJob.job_title].filter(Boolean).join(" · ")}
           </span>
         </div>
@@ -443,7 +443,7 @@ export function JobHistory({
             style={{
               width: "260px",
               flexShrink: 0,
-              backgroundColor: "#2B2E34",
+              backgroundColor: "#0F172A",
               borderRadius: "16px",
               padding: "24px 20px",
               color: "#fff",
@@ -454,7 +454,7 @@ export function JobHistory({
             <p
               style={{
                 fontSize: "11px",
-                color: "#9CA3AF",
+                color: "rgba(255,255,255,0.4)",
                 fontWeight: 500,
                 marginBottom: "10px",
                 letterSpacing: "0.05em",
@@ -467,14 +467,14 @@ export function JobHistory({
               style={{
                 fontSize: "22px",
                 fontWeight: 800,
-                color: "#fff",
+                color: "#ffffff",
                 margin: "0 0 4px",
               }}
             >
               {selectedJob.company || "기업 미입력"}
             </h2>
             {selectedJob.job_title && (
-              <p style={{ fontSize: "14px", color: "#9CA3AF", margin: "0 0 20px" }}>
+              <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.6)", margin: "0 0 20px" }}>
                 {selectedJob.job_title}
               </p>
             )}
@@ -506,13 +506,13 @@ export function JobHistory({
                       gap: "8px",
                     }}
                   >
-                    <span style={{ fontSize: "12px", color: "#9CA3AF", flexShrink: 0 }}>
+                    <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", flexShrink: 0 }}>
                       {item.label}
                     </span>
                     <span
                       style={{
                         fontSize: "12px",
-                        color: "#fff",
+                        color: "rgba(255,255,255,0.8)",
                         fontWeight: 500,
                         textAlign: "right",
                       }}
@@ -536,10 +536,10 @@ export function JobHistory({
                   alignItems: "center",
                   gap: "6px",
                   fontSize: "12px",
-                  color: "#9CA3AF",
+                  color: "rgba(255,255,255,0.3)",
                 }}
               >
-                <Clock style={{ width: "12px", height: "12px", flexShrink: 0 }} />
+                <Clock style={{ width: "12px", height: "12px", flexShrink: 0, color: "rgba(255,255,255,0.3)" }} />
                 {toKST(selectedReport.created_at)}
               </div>
             </div>
@@ -551,7 +551,7 @@ export function JobHistory({
                 width: "100%",
                 padding: "12px",
                 borderRadius: "10px",
-                backgroundColor: "#2563EB",
+                backgroundColor: "#f97316",
                 color: "#fff",
                 fontSize: "13px",
                 fontWeight: 700,
@@ -576,7 +576,7 @@ export function JobHistory({
                   padding: "9px",
                   borderRadius: "8px",
                   backgroundColor: "rgba(255,255,255,0.1)",
-                  color: "#fff",
+                  color: "rgba(255,255,255,0.7)",
                   fontSize: "12px",
                   fontWeight: 600,
                   border: "none",
@@ -591,7 +591,7 @@ export function JobHistory({
                   padding: "9px",
                   borderRadius: "8px",
                   backgroundColor: "rgba(255,255,255,0.1)",
-                  color: "#fff",
+                  color: "rgba(255,255,255,0.7)",
                   fontSize: "12px",
                   fontWeight: 600,
                   border: "none",
@@ -649,7 +649,7 @@ export function JobHistory({
                   style={{
                     width: "20px",
                     height: "20px",
-                    color: "#FF7A00",
+                    color: "#f97316",
                     flexShrink: 0,
                   }}
                   className="animate-spin"
@@ -658,7 +658,7 @@ export function JobHistory({
                   <p
                     style={{
                       fontWeight: 700,
-                      color: "#2B2E34",
+                      color: "rgba(255,255,255,0.8)",
                       fontSize: "15px",
                     }}
                   >
@@ -667,7 +667,7 @@ export function JobHistory({
                   <p
                     style={{
                       fontSize: "12px",
-                      color: "#616161",
+                      color: "rgba(255,255,255,0.4)",
                       marginTop: "2px",
                     }}
                   >
@@ -688,7 +688,7 @@ export function JobHistory({
                     style={{
                       fontSize: "13px",
                       fontWeight: 600,
-                      color: "#E56E00",
+                      color: "#fb923c",
                     }}
                   >
                     {currentStep.label}
@@ -697,7 +697,7 @@ export function JobHistory({
                     style={{
                       fontSize: "13px",
                       fontWeight: 700,
-                      color: "#FF7A00",
+                      color: "#f97316",
                     }}
                   >
                     {pct}%
@@ -706,7 +706,7 @@ export function JobHistory({
                 <div
                   style={{
                     height: "6px",
-                    backgroundColor: "#E2E8F0",
+                    backgroundColor: "rgba(255,255,255,0.1)",
                     borderRadius: "100px",
                     overflow: "hidden",
                   }}
@@ -715,7 +715,7 @@ export function JobHistory({
                     style={{
                       height: "100%",
                       width: `${pct}%`,
-                      backgroundColor: "#FF7A00",
+                      backgroundColor: "#f97316",
                       borderRadius: "100px",
                       transition: "width 0.6s ease",
                     }}
@@ -757,7 +757,7 @@ export function JobHistory({
                           style={{
                             width: "16px",
                             height: "16px",
-                            color: "#FF7A00",
+                            color: "#f97316",
                             flexShrink: 0,
                           }}
                           className="animate-spin"
@@ -778,7 +778,7 @@ export function JobHistory({
                               width: "6px",
                               height: "6px",
                               borderRadius: "50%",
-                              backgroundColor: "#E2E8F0",
+                              backgroundColor: "rgba(255,255,255,0.1)",
                               display: "block",
                             }}
                           />
@@ -788,10 +788,10 @@ export function JobHistory({
                         style={{
                           fontSize: "13px",
                           color: isDone
-                            ? "#CBD5E1"
+                            ? "rgba(255,255,255,0.3)"
                             : isActive
-                              ? "#2B2E34"
-                              : "#CBD5E1",
+                              ? "rgba(255,255,255,0.8)"
+                              : "rgba(255,255,255,0.3)",
                           fontWeight: isActive ? 600 : 400,
                           textDecoration: isDone ? "line-through" : "none",
                         }}
@@ -822,7 +822,7 @@ export function JobHistory({
           }}
         >
           <Loader2
-            style={{ width: "24px", height: "24px", color: "#FF7A00" }}
+            style={{ width: "24px", height: "24px", color: "#f97316" }}
             className="animate-spin"
           />
         </div>
@@ -839,7 +839,7 @@ export function JobHistory({
             ...card,
             textAlign: "center",
             padding: "60px 28px",
-            color: "#616161",
+            color: "rgba(255,255,255,0.4)",
           }}
         >
           <Clock
@@ -847,10 +847,10 @@ export function JobHistory({
               width: "32px",
               height: "32px",
               margin: "0 auto 12px",
-              color: "#CBD5E1",
+              color: "rgba(255,255,255,0.3)",
             }}
           />
-          <p style={{ fontSize: "15px", fontWeight: 600, color: "#616161" }}>
+          <p style={{ fontSize: "15px", fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>
             분석 기록이 없습니다
           </p>
           <p style={{ fontSize: "13px", marginTop: "6px" }}>
@@ -879,15 +879,15 @@ export function JobHistory({
               style={{
                 fontSize: "25px",
                 fontWeight: 700,
-                color: "#2B2E34",
+                color: "#ffffff",
               }}
             >
               분석 기록
             </p>
             <p
-              style={{ fontSize: "15px", color: "#9CA3AF", margin: "3px 0 0" }}
+              style={{ fontSize: "15px", color: "rgba(255,255,255,0.4)", margin: "3px 0 0" }}
             >
-              총 <strong style={{ color: "black" }}>{jobs.length}</strong>건의
+              총 <strong style={{ color: "rgba(255,255,255,0.8)" }}>{jobs.length}</strong>건의
               분석 결과가 저장되어 있습니다.
             </p>
           </div>
@@ -901,7 +901,7 @@ export function JobHistory({
               alignItems: "center",
               gap: "5px",
               fontSize: "13px",
-              color: "#616161",
+              color: "rgba(255,255,255,0.4)",
             }}
           >
             <RefreshCw style={{ width: "14px", height: "14px" }} />
@@ -933,7 +933,7 @@ export function JobHistory({
                     status={job.status}
                     progress={job.progress_pct}
                   />
-                  <span style={{ fontSize: "12px", color: "#616161" }}>
+                  <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)" }}>
                     {toKST(job.created_at)}
                   </span>
                 </div>
@@ -941,7 +941,7 @@ export function JobHistory({
                   style={{
                     fontSize: "15px",
                     fontWeight: 700,
-                    color: "#2B2E34",
+                    color: "#ffffff",
                     marginBottom: "2px",
                   }}
                 >
@@ -950,7 +950,7 @@ export function JobHistory({
                     <span
                       style={{
                         fontWeight: 400,
-                        color: "#616161",
+                        color: "rgba(255,255,255,0.6)",
                         fontSize: "14px",
                       }}
                     >
@@ -963,18 +963,18 @@ export function JobHistory({
                   style={{ display: "flex", alignItems: "center", gap: "8px" }}
                 >
                   {job.industry && (
-                    <p style={{ fontSize: "12px", color: "#616161" }}>
+                    <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>
                       {job.industry}
                     </p>
                   )}
                   {job.career_level && (
                     <>
                       {job.industry && (
-                        <span style={{ fontSize: "12px", color: "#CBD5E1" }}>
+                        <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)" }}>
                           ·
                         </span>
                       )}
-                      <span style={{ fontSize: "12px", color: "#616161" }}>
+                      <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>
                         {job.career_level}
                       </span>
                     </>
@@ -994,7 +994,7 @@ export function JobHistory({
                       <span
                         style={{
                           fontSize: "12px",
-                          color: "#FF7A00",
+                          color: "#f97316",
                           fontWeight: 600,
                         }}
                       >
@@ -1004,7 +1004,7 @@ export function JobHistory({
                     <div
                       style={{
                         height: "4px",
-                        backgroundColor: "#E2E8F0",
+                        backgroundColor: "rgba(255,255,255,0.1)",
                         borderRadius: "100px",
                         overflow: "hidden",
                       }}
@@ -1013,7 +1013,7 @@ export function JobHistory({
                         style={{
                           height: "100%",
                           width: `${job.progress_pct}%`,
-                          backgroundColor: "#FF7A00",
+                          backgroundColor: "#f97316",
                           borderRadius: "100px",
                           transition: "width 0.5s",
                         }}
@@ -1049,8 +1049,8 @@ export function JobHistory({
                       borderRadius: "10px",
                       fontSize: "13px",
                       fontWeight: 600,
-                      color: "#FF7A00",
-                      backgroundColor: "#FFF3E8",
+                      color: "#fdba74",
+                      backgroundColor: "rgba(249,115,22,0.2)",
                       border: "none",
                       cursor: "pointer",
                     }}
@@ -1081,8 +1081,8 @@ export function JobHistory({
                       borderRadius: "10px",
                       fontSize: "13px",
                       fontWeight: 600,
-                      color: "#E56E00",
-                      backgroundColor: "#FFE4C4",
+                      color: "#fdba74",
+                      backgroundColor: "rgba(249,115,22,0.2)",
                       border: "none",
                       cursor: "pointer",
                     }}

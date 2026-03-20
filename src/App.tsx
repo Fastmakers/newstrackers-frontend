@@ -190,7 +190,9 @@ export default function App() {
           borderBottom: "1px solid #E5E7EB",
         }}
       >
-        <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 28px" }}>
+        <div
+          style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 28px" }}
+        >
           <div
             style={{
               paddingTop: "20px",
@@ -242,14 +244,14 @@ export default function App() {
                   >
                     <User
                       style={{
-                        width: "15px",
-                        height: "15px",
+                        width: "27px",
+                        height: "27px",
                         color: "#616161",
                       }}
                     />
                     <span
                       style={{
-                        fontSize: "13px",
+                        fontSize: "17px",
                         fontWeight: 600,
                         color: "#2B2E34",
                       }}
