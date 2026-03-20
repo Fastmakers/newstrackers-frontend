@@ -34,7 +34,7 @@ export function ResumeReview({ data }: ResumeReviewProps) {
     >
       <p
         style={{
-          fontSize: "11px",
+          fontSize: "15px",
           fontWeight: 700,
           color: "#9CA3AF",
           letterSpacing: "0.1em",
@@ -52,11 +52,11 @@ export function ResumeReview({ data }: ResumeReviewProps) {
           marginBottom: "22px",
         }}
       >
-        <span style={{ fontSize: "18px" }}>📄</span>
+        <span style={{ fontSize: "20px" }}>📄</span>
         <p
           style={{
             fontWeight: 700,
-            fontSize: "18px",
+            fontSize: "20px",
             color: "#2B2E34",
             margin: 0,
           }}
@@ -115,7 +115,14 @@ export function ResumeReview({ data }: ResumeReviewProps) {
           {skills.length === 0 ? (
             <p style={{ fontSize: "13px", color: "#616161" }}>데이터 없음</p>
           ) : (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "7px",
+                marginTop: 25,
+              }}
+            >
               {skills.map((skill: string, i: number) => (
                 <span
                   key={i}
@@ -126,7 +133,7 @@ export function ResumeReview({ data }: ResumeReviewProps) {
                     backgroundColor: "#FFFFFF",
                     border: `1px solid ${hoveredSkill === i ? "#FED7AA" : "#E2E8F0"}`,
                     color: hoveredSkill === i ? "#92400E" : "#374151",
-                    fontSize: "13px",
+                    fontSize: "15px",
                     fontWeight: 800,
                     borderRadius: "100px",
                     cursor: "default",
@@ -177,7 +184,7 @@ export function ResumeReview({ data }: ResumeReviewProps) {
               style={{
                 fontSize: "18px",
                 fontWeight: 700,
-                margin: 0,
+                marginBottom: 0,
               }}
             >
               주요 경험
@@ -191,6 +198,7 @@ export function ResumeReview({ data }: ResumeReviewProps) {
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
                 gap: "8px",
+                marginTop: 25,
               }}
             >
               {experiences.map((exp: string, i: number) => (
@@ -214,7 +222,7 @@ export function ResumeReview({ data }: ResumeReviewProps) {
                   </span>
                   <span
                     style={{
-                      fontSize: "14px",
+                      fontSize: "16px",
                       fontWeight: 600,
                       color: "#2B2E34",
                       lineHeight: 1.6,

@@ -165,7 +165,7 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
           <div>
             <p
               style={{
-                fontSize: "11px",
+                fontSize: "15px",
                 fontWeight: 700,
                 color: "#9CA3AF",
                 letterSpacing: "0.1em",
@@ -180,7 +180,7 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
               <p
                 style={{
                   fontWeight: 700,
-                  fontSize: "18px",
+                  fontSize: "20px",
                   color: "#2B2E34",
                   margin: 0,
                 }}
@@ -402,7 +402,7 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
           <div style={{ marginBottom: "16px" }}>
             <p
               style={{
-                fontSize: "11px",
+                fontSize: "15px",
                 fontWeight: 700,
                 color: "#9CA3AF",
                 letterSpacing: "0.1em",
@@ -417,7 +417,7 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
               <p
                 style={{
                   fontWeight: 700,
-                  fontSize: "18px",
+                  fontSize: "20px",
                   color: "#2B2E34",
                   margin: 0,
                 }}

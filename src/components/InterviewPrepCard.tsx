@@ -201,7 +201,7 @@ export function InterviewPrepCard({ content }: { content: string }) {
       <div style={{ marginBottom: "20px" }}>
         <p
           style={{
-            fontSize: "11px",
+            fontSize: "15px",
             fontWeight: 700,
             color: "#9CA3AF",
             letterSpacing: "0.1em",
@@ -212,11 +212,11 @@ export function InterviewPrepCard({ content }: { content: string }) {
           INTERVIEW PREP
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ fontSize: "18px" }}>🗒️</span>
+          <span style={{ fontSize: "20px" }}>🗒️</span>
           <p
             style={{
               fontWeight: 700,
-              fontSize: "18px",
+              fontSize: "20px",
               color: "#2B2E34",
               margin: 0,
             }}

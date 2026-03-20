@@ -83,7 +83,7 @@ export function SwotAnalysis({ data }: SwotAnalysisProps) {
       <div style={{ marginBottom: "22px" }}>
         <p
           style={{
-            fontSize: "11px",
+            fontSize: "15px",
             fontWeight: 700,
             color: "#9CA3AF",
             letterSpacing: "0.1em",
@@ -98,7 +98,7 @@ export function SwotAnalysis({ data }: SwotAnalysisProps) {
           <p
             style={{
               fontWeight: 700,
-              fontSize: "18px",
+              fontSize: "20px",
               color: "#2B2E34",
               margin: 0,
             }}
