@@ -1010,9 +1010,7 @@ export function JobHistory({
               ...card,
               padding: "18px 24px",
               backgroundColor:
-                hoveredJob === job.job_id
-                  ? "#FFFCFA"
-                  : "#ffffff",
+                hoveredJob === job.job_id ? "#FFFCFA" : "#ffffff",
               transition: "background-color 0.15s",
             }}
           >
@@ -1169,8 +1167,8 @@ export function JobHistory({
                       borderRadius: "10px",
                       fontSize: "13px",
                       fontWeight: 600,
-                      color: "#fdba74",
-                      backgroundColor: "rgba(249,115,22,0.2)",
+                      color: "#FF7A00",
+                      backgroundColor: "#FFF3E8",
                       border: "none",
                       cursor: "pointer",
                     }}
