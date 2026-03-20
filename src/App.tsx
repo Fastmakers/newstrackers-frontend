@@ -505,7 +505,13 @@ export default function App() {
         {/* 분석기록 탭 */}
         <div style={{ display: activeTab === "history" ? "block" : "none" }}>
           {isAuthenticated || streamingState ? (
-            <JobHistory streamingState={streamingState} />
+            <JobHistory
+            streamingState={streamingState}
+            onExitStreaming={() => {
+              activeStreamSidRef.current = null;
+              setStreamingState(null);
+            }}
+          />
           ) : (
             <div style={{ textAlign: "center", padding: "60px 0" }}>
               <p

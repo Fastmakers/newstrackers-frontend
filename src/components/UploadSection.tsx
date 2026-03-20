@@ -131,7 +131,11 @@ export function UploadSection({ onAnalysisComplete, onAnalyzingChange, onStreami
         if (job.status === 'completed' && job.report_id) {
           const report = await getReport(job.report_id);
           setIsStreaming(false);
-          onStreamingStateChange?.(null, sid);
+          setStreamState(prev => {
+            const done: StreamingState = { ...prev, progressPct: 100, currentLabel: '분석 완료' };
+            onStreamingStateChange?.(done, sid);
+            return done;
+          });
           onAnalyzingChange?.(false);
           onAnalysisComplete({ ...report, apiResponse: report });
           break;

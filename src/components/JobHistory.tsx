@@ -163,8 +163,10 @@ type HistoryTab = "streaming" | "list";
 
 export function JobHistory({
   streamingState,
+  onExitStreaming,
 }: {
   streamingState?: StreamingState | null;
+  onExitStreaming?: () => void;
 }) {
   const [activeSubTab, setActiveSubTab] = useState<HistoryTab>("list");
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -436,9 +438,30 @@ export function JobHistory({
 
   // 스트리밍 탭 선택된 경우
   if (activeSubTab === "streaming" && streamingState) {
+    const isDone = streamingState.progressPct >= 100;
     return (
       <div>
         {subTabBar}
+        {isDone && (
+          <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 0 12px" }}>
+            <button
+              type="button"
+              onClick={onExitStreaming}
+              style={{
+                fontSize: "13px",
+                fontWeight: 600,
+                color: "#6B7280",
+                backgroundColor: "#F3F4F6",
+                border: "1px solid #E5E7EB",
+                borderRadius: "8px",
+                padding: "8px 16px",
+                cursor: "pointer",
+              }}
+            >
+              나가기
+            </button>
+          </div>
+        )}
         <StreamingReport {...streamingState} />
       </div>
     );
