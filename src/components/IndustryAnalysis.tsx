@@ -95,6 +95,8 @@ function AccordionSection({ title, body, index }: { title: string; body: string;
 
 export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
   const [visibleCount, setVisibleCount] = useState(3);
+  const [hoveredNews, setHoveredNews] = useState<number | null>(null);
+  const [hoveredMoreBtn, setHoveredMoreBtn] = useState(false);
   const api = data?.apiResponse ?? data ?? {};
   const news = Array.isArray(api.matched_news) ? api.matched_news : [];
   const sections = parseSections(api.relevance_analysis || "");
@@ -105,9 +107,10 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
       {/* 관련 뉴스 카드 */}
       <div
         style={{
-          backgroundColor: "#ffffff",
+          backgroundColor: "#FFFFFF",
           borderRadius: "16px",
           padding: "28px",
+          border: "1px solid #E5E7EB",
           boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
         }}
       >
@@ -150,9 +153,9 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
           {news.length > 0 && (
             <span
               style={{
-                fontSize: "13px",
-                fontWeight: 600,
-                color: "#616161",
+                fontSize: "12px",
+                fontWeight: 700,
+                color: "#6B7280",
                 backgroundColor: "#F3F4F6",
                 padding: "4px 12px",
                 borderRadius: "100px",
@@ -203,6 +206,7 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           {visible.map((trend: any, idx: number) => {
             const rank = idx + 1;
+            const isHovered = hoveredNews === idx;
 
             return (
               <a
@@ -210,34 +214,34 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
                 href={trend.url}
                 target="_blank"
                 rel="noreferrer"
+                onMouseEnter={() => setHoveredNews(idx)}
+                onMouseLeave={() => setHoveredNews(null)}
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: "12px",
                   padding: "14px 16px",
                   borderRadius: "12px",
-                  // border: "0.5px solid rgba(255, 122, 0)",
+                  border: `1px solid ${isHovered ? "#FED7AA" : "#E5E7EB"}`,
                   textDecoration: "none",
-                  transition: "background 0.1s",
-                  backgroundColor: "#F8FAFC",
+                  transition: "background 0.1s, border-color 0.1s",
+                  backgroundColor: isHovered ? "rgba(255, 237, 213, 0.3)" : "#FFFFFF",
                 }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = "#F1F5F9")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor = "#F8FAFC")
-                }
               >
                 {/* 순위 */}
                 <span
                   style={{
-                    fontSize: "20px",
-                    fontWeight: 500,
-                    color: "#FF7A00",
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: "#6B7280",
+                    backgroundColor: "#F3F4F6",
                     flexShrink: 0,
-                    width: "20px",
-                    textAlign: "center",
-                    paddingRight: "2",
+                    width: "26px",
+                    height: "26px",
+                    borderRadius: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
                   {rank}
@@ -256,8 +260,9 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
                       style={{
                         fontSize: "11px",
                         fontWeight: 700,
-                        color: "#FF7A00",
-                        backgroundColor: "#FFF3E8",
+                        color: "#F97316",
+                        backgroundColor: "#FFF7ED",
+                        border: "1px solid #FDBA74",
                         padding: "2px 8px",
                         borderRadius: "100px",
                       }}
@@ -274,12 +279,13 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
                     style={{
                       fontSize: "14px",
                       fontWeight: 600,
-                      color: "#2B2E34",
+                      color: isHovered ? "#EA580C" : "#1F2937",
                       lineHeight: 1.45,
                       margin: 0,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
+                      transition: "color 0.1s",
                     }}
                   >
                     {trend.title || "제목 없음"}
@@ -289,8 +295,9 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
                   style={{
                     width: "14px",
                     height: "14px",
-                    color: "#CBD5E1",
+                    color: isHovered ? "#FB923C" : "#CBD5E1",
                     flexShrink: 0,
+                    transition: "color 0.1s",
                   }}
                 />
               </a>
@@ -302,20 +309,24 @@ export function IndustryAnalysis({ data }: IndustryAnalysisProps) {
           <button
             type="button"
             onClick={() => setVisibleCount((prev) => Math.min(prev + 3, news.length))}
+            onMouseEnter={() => setHoveredMoreBtn(true)}
+            onMouseLeave={() => setHoveredMoreBtn(false)}
             style={{
               width: "100%",
               marginTop: "15px",
               padding: "12px",
               fontSize: "13px",
               fontWeight: 600,
-              color: "rgba(255, 122, 0)",
-              backgroundColor: "#F8FAFC",
+              color: hoveredMoreBtn ? "#EA580C" : "#6B7280",
+              backgroundColor: hoveredMoreBtn ? "#FFFFFF" : "#F3F4F6",
+              border: `1px solid ${hoveredMoreBtn ? "#FED7AA" : "#E5E7EB"}`,
               borderRadius: "12px",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               gap: "6px",
+              transition: "all 0.15s",
             }}
           >
             <ChevronDown size={15} />

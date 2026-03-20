@@ -87,8 +87,8 @@ export function ResumeReview({ data }: ResumeReviewProps) {
           >
             <span
               style={{
-                width: "25px",
-                height: "25px",
+                width: "27px",
+                height: "27px",
                 borderRadius: "50%",
                 backgroundColor: "#F97316",
                 display: "flex",
@@ -103,7 +103,7 @@ export function ResumeReview({ data }: ResumeReviewProps) {
             </span>
             <p
               style={{
-                fontSize: "14px",
+                fontSize: "18px",
                 fontWeight: 900,
                 color: "#1E293B",
                 margin: 0,
@@ -127,7 +127,7 @@ export function ResumeReview({ data }: ResumeReviewProps) {
                     border: `1px solid ${hoveredSkill === i ? "#FED7AA" : "#E2E8F0"}`,
                     color: hoveredSkill === i ? "#92400E" : "#374151",
                     fontSize: "13px",
-                    fontWeight: 600,
+                    fontWeight: 800,
                     borderRadius: "100px",
                     cursor: "default",
                     transition: "border-color 0.15s, color 0.15s",
@@ -159,21 +159,23 @@ export function ResumeReview({ data }: ResumeReviewProps) {
           >
             <span
               style={{
-                width: "25px",
-                height: "25px",
+                width: "27px",
+                height: "27px",
                 borderRadius: "50%",
-                backgroundColor: "#F97316",
+                backgroundColor: "#7C3AED",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
               }}
             >
-              <StarsIcon style={{ width: "17px", height: "17px" }} />
+              <StarsIcon
+                style={{ width: "17px", height: "17px", color: "#FFFFFF" }}
+              />
             </span>
             <p
               style={{
-                fontSize: "16px",
+                fontSize: "18px",
                 fontWeight: 700,
                 margin: 0,
               }}
@@ -202,7 +204,7 @@ export function ResumeReview({ data }: ResumeReviewProps) {
                 >
                   <span
                     style={{
-                      color: "#FF7A00",
+                      color: "#7C3AED",
                       fontWeight: 700,
                       flexShrink: 0,
                       marginTop: "1px",
@@ -212,7 +214,7 @@ export function ResumeReview({ data }: ResumeReviewProps) {
                   </span>
                   <span
                     style={{
-                      fontSize: "13px",
+                      fontSize: "14px",
                       fontWeight: 600,
                       color: "#2B2E34",
                       lineHeight: 1.6,
